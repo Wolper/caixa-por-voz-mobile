@@ -8,7 +8,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -21,7 +21,7 @@
     "@types/react": "~18.3.12",
     "@typescript-eslint/eslint-plugin": "^8.12.2",
     "@typescript-eslint/parser": "^8.12.2",
-    "eslint": "^9.13.0",
+    "eslint": "^8.57.1",
     "eslint-config-expo": "~8.0.1",
     "typescript": "~5.3.3"
   }
