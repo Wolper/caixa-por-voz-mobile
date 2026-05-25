@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, TextInput } from 'react-native';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { ControlsScreen } from './src/screens/ControlsScreen';
 
 function AuthScreen() {
   const { signIn, signUp } = useAuth();
@@ -62,35 +63,16 @@ function AuthScreen() {
         <Text style={styles.buttonText}>{submitting ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Criar conta'}</Text>
       </Pressable>
 
-      <Pressable onPress={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMessage(null); }}>
+      <Pressable
+        onPress={() => {
+          setMode(mode === 'login' ? 'signup' : 'login');
+          setMessage(null);
+        }}
+      >
         <Text style={styles.link}>{mode === 'login' ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Entrar'}</Text>
       </Pressable>
 
       <StatusBar style="auto" />
-    </SafeAreaView>
-  );
-}
-
-function Dashboard() {
-  const { user, signOut } = useAuth();
-  const [loading, setLoading] = useState(false);
-
-  const onSignOut = async () => {
-    setLoading(true);
-    try {
-      await signOut();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Você está logado</Text>
-      <Text style={styles.subtitle}>{user?.email}</Text>
-      <Pressable style={styles.button} onPress={onSignOut} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Saindo...' : 'Sair'}</Text>
-      </Pressable>
     </SafeAreaView>
   );
 }
@@ -107,7 +89,7 @@ function Root() {
     );
   }
 
-  return user ? <Dashboard /> : <AuthScreen />;
+  return user ? <ControlsScreen /> : <AuthScreen />;
 }
 
 export default function App() {
