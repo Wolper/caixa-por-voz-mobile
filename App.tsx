@@ -4,6 +4,15 @@ import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, TextInput
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ControlsScreen } from './src/screens/ControlsScreen';
+import { TransactionsScreen } from './src/screens/TransactionsScreen';
+
+type AppRoute =
+  | { name: 'controls' }
+  | {
+      name: 'transactions';
+      selectedControlId: string;
+      selectedControlName: string;
+    };
 
 function AuthScreen() {
   const { signIn, signUp } = useAuth();
@@ -49,13 +58,7 @@ function AuthScreen() {
         onChangeText={setEmail}
       />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+      <TextInput style={styles.input} placeholder="Senha" secureTextEntry value={password} onChangeText={setPassword} />
 
       {message ? <Text style={styles.message}>{message}</Text> : null}
 
@@ -79,6 +82,7 @@ function AuthScreen() {
 
 function Root() {
   const { user, loading } = useAuth();
+  const [route, setRoute] = useState<AppRoute>({ name: 'controls' });
 
   if (loading) {
     return (
@@ -89,7 +93,31 @@ function Root() {
     );
   }
 
-  return user ? <ControlsScreen /> : <AuthScreen />;
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  if (route.name === 'transactions') {
+    return (
+      <TransactionsScreen
+        selectedControlId={route.selectedControlId}
+        selectedControlName={route.selectedControlName}
+        onBack={() => setRoute({ name: 'controls' })}
+      />
+    );
+  }
+
+  return (
+    <ControlsScreen
+      onOpenTransactions={({ controlId, controlName }) =>
+        setRoute({
+          name: 'transactions',
+          selectedControlId: controlId,
+          selectedControlName: controlName,
+        })
+      }
+    />
+  );
 }
 
 export default function App() {
