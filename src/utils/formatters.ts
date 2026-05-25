@@ -29,3 +29,13 @@ export function toNumber(value?: number | string | null): number {
 
   return 0;
 }
+
+export function parseAmountInput(value: string): number {
+  const normalized = value.replace(/\s/g, '').replace(',', '.');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export function normalizeIsoDate(value: string): string {
+  return value.trim().slice(0, 10);
+}

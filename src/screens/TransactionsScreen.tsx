@@ -10,9 +10,11 @@ type Props = {
   selectedControlId: string;
   selectedControlName: string;
   onBack: () => void;
+  onNewTransaction: () => void;
+  refreshSignal?: number;
 };
 
-export function TransactionsScreen({ selectedControlId, selectedControlName, onBack }: Props) {
+export function TransactionsScreen({ selectedControlId, selectedControlName, onBack, onNewTransaction, refreshSignal }: Props) {
   const { signOut } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,7 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
 
   useEffect(() => {
     loadTransactions();
-  }, [loadTransactions]);
+  }, [loadTransactions, refreshSignal]);
 
   const summary = useMemo(() => {
     return transactions.reduce(
@@ -117,6 +119,10 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
         <Text style={styles.title}>Movimentações</Text>
         <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
       </View>
+
+      <Pressable style={styles.newTransactionButton} onPress={onNewTransaction}>
+        <Text style={styles.newTransactionButtonText}>Novo lançamento</Text>
+      </Pressable>
 
       <View style={styles.summaryBox}>
         <Text style={styles.summaryText}>Receitas: {formatCurrencyBRL(summary.receitas)}</Text>
@@ -179,6 +185,8 @@ const styles = StyleSheet.create({
   header: { gap: 6, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 15, color: '#3b3b3b' },
+  newTransactionButton: { backgroundColor: '#111', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginBottom: 12 },
+  newTransactionButtonText: { color: '#fff', fontWeight: '600' },
   summaryBox: { borderWidth: 1, borderColor: '#d9d9d9', borderRadius: 12, padding: 12, gap: 4, marginBottom: 12 },
   summaryText: { fontSize: 15, color: '#222' },
   summaryBalance: { fontSize: 16, fontWeight: '700', color: '#111' },

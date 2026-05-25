@@ -4,15 +4,18 @@ import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, TextInput
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ControlsScreen } from './src/screens/ControlsScreen';
+import { NewTransactionScreen } from './src/screens/NewTransactionScreen';
 import { TransactionsScreen } from './src/screens/TransactionsScreen';
+
+type SelectedControl = {
+  selectedControlId: string;
+  selectedControlName: string;
+};
 
 type AppRoute =
   | { name: 'controls' }
-  | {
-      name: 'transactions';
-      selectedControlId: string;
-      selectedControlName: string;
-    };
+  | ({ name: 'transactions' } & SelectedControl)
+  | ({ name: 'new-transaction' } & SelectedControl);
 
 function AuthScreen() {
   const { signIn, signUp } = useAuth();
@@ -83,6 +86,7 @@ function AuthScreen() {
 function Root() {
   const { user, loading } = useAuth();
   const [route, setRoute] = useState<AppRoute>({ name: 'controls' });
+  const [transactionsRefreshSignal, setTransactionsRefreshSignal] = useState(0);
 
   if (loading) {
     return (
@@ -97,12 +101,44 @@ function Root() {
     return <AuthScreen />;
   }
 
+
+  if (route.name === 'new-transaction') {
+    return (
+      <NewTransactionScreen
+        selectedControlId={route.selectedControlId}
+        onBack={() =>
+          setRoute({
+            name: 'transactions',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onSaved={() => {
+          setTransactionsRefreshSignal((value) => value + 1);
+          setRoute({
+            name: 'transactions',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          });
+        }}
+      />
+    );
+  }
+
   if (route.name === 'transactions') {
     return (
       <TransactionsScreen
         selectedControlId={route.selectedControlId}
         selectedControlName={route.selectedControlName}
         onBack={() => setRoute({ name: 'controls' })}
+        onNewTransaction={() =>
+          setRoute({
+            name: 'new-transaction',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        refreshSignal={transactionsRefreshSignal}
       />
     );
   }
