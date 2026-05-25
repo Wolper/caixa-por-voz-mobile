@@ -26,17 +26,53 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select('id, company_id, description, tipo, type, amount, value, date, transaction_date, due_date, vencimento, status, created_at')
+        .select(
+          'id, company_id, type, description, amount, status, transaction_date, due_date, supplier_customer, settled_at, settled_amount, created_at',
+        )
         .eq('company_id', selectedControlId)
-        .order('date', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false });
+        .order('transaction_date', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
 
       setTransactions((data ?? []) as Transaction[]);
-    } catch {
-      setTransactions([]);
-      setErrorMessage('Não foi possível carregar as movimentações deste controle agora. Tente novamente.');
+    } catch (error) {
+      const supabaseError = error as { message?: string; code?: string; details?: string; hint?: string };
+
+      if (__DEV__) {
+        console.error('Erro ao carregar movimentações', {
+          message: supabaseError?.message,
+          code: supabaseError?.code,
+          details: supabaseError?.details,
+          hint: supabaseError?.hint,
+        });
+      }
+
+      try {
+        const { data, error: fallbackError } = await supabase
+          .from('transactions')
+          .select(
+            'id, company_id, type, description, amount, status, transaction_date, due_date, supplier_customer, settled_at, settled_amount, created_at',
+          )
+          .eq('company_id', selectedControlId)
+          .order('created_at', { ascending: false, nullsFirst: false });
+
+        if (fallbackError) throw fallbackError;
+
+        setTransactions((data ?? []) as Transaction[]);
+      } catch (fallbackErr) {
+        if (__DEV__) {
+          const fallback = fallbackErr as { message?: string; code?: string; details?: string; hint?: string };
+          console.error('Erro no fallback ao carregar movimentações', {
+            message: fallback?.message,
+            code: fallback?.code,
+            details: fallback?.details,
+            hint: fallback?.hint,
+          });
+        }
+
+        setTransactions([]);
+        setErrorMessage('Não foi possível carregar as movimentações deste controle agora. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }
@@ -49,14 +85,14 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
   const summary = useMemo(() => {
     return transactions.reduce(
       (acc, transaction) => {
-        const rawType = (transaction.tipo ?? transaction.type ?? '').toString().toLowerCase();
-        const amount = toNumber(transaction.amount ?? transaction.value);
+        const rawType = (transaction.type ?? '').toString().toLowerCase();
+        const amount = toNumber(transaction.amount);
 
-        if (rawType.includes('receita') || rawType.includes('receber')) {
+        if (rawType === 'receita') {
           acc.receitas += amount;
         }
 
-        if (rawType.includes('despesa') || rawType.includes('pagar')) {
+        if (rawType === 'despesa') {
           acc.despesas += amount;
         }
 
@@ -107,10 +143,10 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
       ) : (
         <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
           {transactions.map((transaction) => {
-            const value = toNumber(transaction.amount ?? transaction.value);
-            const type = transaction.tipo ?? transaction.type ?? '-';
-            const date = transaction.date ?? transaction.transaction_date;
-            const dueDate = transaction.due_date ?? transaction.vencimento;
+            const value = toNumber(transaction.amount);
+            const type = transaction.type ?? '-';
+            const date = transaction.transaction_date;
+            const dueDate = transaction.due_date;
 
             return (
               <View key={transaction.id} style={styles.transactionCard}>
