@@ -13,7 +13,11 @@ const profileTypeLabel: Record<Control['profile_type'], string> = {
   empresa: 'Controle empresarial',
 };
 
-export function ControlsScreen() {
+type Props = {
+  onOpenTransactions: (params: { controlId: string; controlName: string }) => void;
+};
+
+export function ControlsScreen({ onOpenTransactions }: Props) {
   const { signOut } = useAuth();
   const [controls, setControls] = useState<Control[]>([]);
   const [selectedControlId, setSelectedControlId] = useState<string | null>(null);
@@ -26,10 +30,7 @@ export function ControlsScreen() {
     setErrorMessage(null);
 
     try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id, name, cnpj, profile_type')
-        .order('name', { ascending: true });
+      const { data, error } = await supabase.from('companies').select('id, name, cnpj, profile_type').order('name', { ascending: true });
 
       if (error) throw error;
 
@@ -65,14 +66,18 @@ export function ControlsScreen() {
     loadControls();
   }, [loadControls]);
 
-  const currentControlName = useMemo(() => {
-    const selectedControl = controls.find((control) => control.id === selectedControlId);
-    return selectedControl?.name ?? 'Nenhum controle selecionado';
-  }, [controls, selectedControlId]);
+  const selectedControl = useMemo(() => controls.find((control) => control.id === selectedControlId), [controls, selectedControlId]);
+
+  const currentControlName = selectedControl?.name ?? 'Nenhum controle selecionado';
 
   const handleSelectControl = async (controlId: string) => {
     setSelectedControlId(controlId);
     await AsyncStorage.setItem(SELECTED_CONTROL_STORAGE_KEY, controlId);
+  };
+
+  const handleOpenTransactions = () => {
+    if (!selectedControl) return;
+    onOpenTransactions({ controlId: selectedControl.id, controlName: selectedControl.name });
   };
 
   const handleSignOut = async () => {
@@ -125,6 +130,10 @@ export function ControlsScreen() {
               </Pressable>
             );
           })}
+
+          <Pressable style={[styles.openButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenTransactions}>
+            <Text style={styles.openButtonText}>Ver Movimentações</Text>
+          </Pressable>
         </View>
       )}
 
@@ -202,6 +211,20 @@ const styles = StyleSheet.create({
   controlCnpj: {
     fontSize: 13,
     color: '#555',
+  },
+  openButton: {
+    marginTop: 8,
+    backgroundColor: '#1b64d9',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  openButtonDisabled: {
+    backgroundColor: '#87a9e5',
+  },
+  openButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   secondaryButton: {
     borderRadius: 10,
