@@ -18,6 +18,7 @@ type Category = {
   id: string;
   name: string;
   type?: TransactionType | string | null;
+  company_id?: string | null;
 };
 
 type NewTransactionScreenProps = {
@@ -88,6 +89,32 @@ function nullableTrim(value: string) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function normalizeCategoryName(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function dedupeCategoriesByName(categories: Category[]) {
+  const seen = new Set<string>();
+  const result: Category[] = [];
+
+  for (const category of categories) {
+    const key = normalizeCategoryName(category.name);
+
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(category);
+  }
+
+  return result;
+}
+
 function logSupabaseError(context: string, error: SupabaseErrorLike | null) {
   if (!error) {
     return;
@@ -117,6 +144,7 @@ export function NewTransactionScreen({
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [categorySelectorOpen, setCategorySelectorOpen] = useState(false);
 
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -124,14 +152,20 @@ export function NewTransactionScreen({
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
   const filteredCategories = useMemo(() => {
-    return categories.filter((category) => {
+    const compatibleCategories = categories.filter((category) => {
       if (!category.type) {
         return true;
       }
 
       return category.type === type;
     });
+
+    return dedupeCategoriesByName(compatibleCategories);
   }, [categories, type]);
+
+  const selectedCategory = useMemo(() => {
+    return filteredCategories.find((category) => category.id === selectedCategoryId);
+  }, [filteredCategories, selectedCategoryId]);
 
   useEffect(() => {
     if (
@@ -139,6 +173,7 @@ export function NewTransactionScreen({
       !filteredCategories.some((category) => category.id === selectedCategoryId)
     ) {
       setSelectedCategoryId('');
+      setCategorySelectorOpen(false);
     }
   }, [filteredCategories, selectedCategoryId]);
 
@@ -151,7 +186,8 @@ export function NewTransactionScreen({
 
       const primaryResult = await supabase
         .from('categories')
-        .select('id, name, type')
+        .select('id, name, type, company_id')
+        .eq('company_id', selectedControlId)
         .order('name', { ascending: true });
 
       if (!isMounted) {
@@ -164,7 +200,24 @@ export function NewTransactionScreen({
         return;
       }
 
-      logSupabaseError('Erro ao carregar categorias com type', primaryResult.error);
+      logSupabaseError('Erro ao carregar categorias com company_id/type', primaryResult.error);
+
+      const fallbackWithTypeResult = await supabase
+        .from('categories')
+        .select('id, name, type')
+        .order('name', { ascending: true });
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!fallbackWithTypeResult.error) {
+        setCategories((fallbackWithTypeResult.data ?? []) as Category[]);
+        setLoadingCategories(false);
+        return;
+      }
+
+      logSupabaseError('Erro ao carregar categorias com type', fallbackWithTypeResult.error);
 
       const fallbackResult = await supabase
         .from('categories')
@@ -193,7 +246,7 @@ export function NewTransactionScreen({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [selectedControlId]);
 
   async function handleSave() {
     setFormError(null);
@@ -258,6 +311,16 @@ export function NewTransactionScreen({
     onSaved();
   }
 
+  function handleChangeType(nextType: TransactionType) {
+    setType(nextType);
+    setCategorySelectorOpen(false);
+  }
+
+  function handleSelectCategory(categoryId: string) {
+    setSelectedCategoryId(categoryId);
+    setCategorySelectorOpen(false);
+  }
+
   return (
     <ScrollView
       contentContainerStyle={styles.container}
@@ -280,7 +343,7 @@ export function NewTransactionScreen({
               styles.optionButton,
               type === 'receita' && styles.optionButtonActive,
             ]}
-            onPress={() => setType('receita')}
+            onPress={() => handleChangeType('receita')}
           >
             <Text
               style={[
@@ -297,7 +360,7 @@ export function NewTransactionScreen({
               styles.optionButton,
               type === 'despesa' && styles.optionButtonActive,
             ]}
-            onPress={() => setType('despesa')}
+            onPress={() => handleChangeType('despesa')}
           >
             <Text
               style={[
@@ -348,36 +411,58 @@ export function NewTransactionScreen({
           <Text style={styles.errorText}>{categoryError}</Text>
         ) : null}
 
-        {!loadingCategories && !categoryError && filteredCategories.length === 0 ? (
-          <Text style={styles.helperText}>Nenhuma categoria disponível.</Text>
-        ) : null}
+        {!loadingCategories && !categoryError ? (
+          <>
+            <Pressable
+              style={styles.selectButton}
+              onPress={() => setCategorySelectorOpen((current) => !current)}
+            >
+              <Text
+                style={[
+                  styles.selectButtonText,
+                  !selectedCategory && styles.selectButtonPlaceholder,
+                ]}
+              >
+                {selectedCategory?.name ?? 'Selecionar categoria'}
+              </Text>
 
-        {!loadingCategories && filteredCategories.length > 0 ? (
-          <View style={styles.categoryList}>
-            {filteredCategories.map((category) => {
-              const selected = selectedCategoryId === category.id;
+              <Text style={styles.selectButtonIcon}>
+                {categorySelectorOpen ? '▲' : '▼'}
+              </Text>
+            </Pressable>
 
-              return (
-                <Pressable
-                  key={category.id}
-                  style={[
-                    styles.categoryButton,
-                    selected && styles.categoryButtonActive,
-                  ]}
-                  onPress={() => setSelectedCategoryId(category.id)}
-                >
-                  <Text
-                    style={[
-                      styles.categoryButtonText,
-                      selected && styles.categoryButtonTextActive,
-                    ]}
-                  >
-                    {category.name}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+            {categorySelectorOpen ? (
+              <View style={styles.categoryPanel}>
+                {filteredCategories.length === 0 ? (
+                  <Text style={styles.emptyText}>Nenhuma categoria disponível.</Text>
+                ) : (
+                  filteredCategories.map((category) => {
+                    const selected = selectedCategoryId === category.id;
+
+                    return (
+                      <Pressable
+                        key={category.id}
+                        style={[
+                          styles.categoryRow,
+                          selected && styles.categoryRowActive,
+                        ]}
+                        onPress={() => handleSelectCategory(category.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.categoryRowText,
+                            selected && styles.categoryRowTextActive,
+                          ]}
+                        >
+                          {category.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })
+                )}
+              </View>
+            ) : null}
+          </>
         ) : null}
 
         <Text style={styles.label}>Status</Text>
@@ -555,32 +640,64 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginLeft: 8,
   },
-  categoryList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -4,
-    marginTop: 2,
-  },
-  categoryButton: {
+  selectButton: {
+    minHeight: 50,
     borderWidth: 1,
     borderColor: '#cbd5e1',
-    borderRadius: 999,
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    margin: 4,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  categoryButtonActive: {
+  selectButtonText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  selectButtonPlaceholder: {
+    fontWeight: '500',
+    color: '#64748b',
+  },
+  selectButtonIcon: {
+    marginLeft: 12,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#64748b',
+  },
+  categoryPanel: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    overflow: 'hidden',
+  },
+  categoryRow: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  categoryRowActive: {
     backgroundColor: '#dbeafe',
-    borderColor: '#2563eb',
   },
-  categoryButtonText: {
-    fontSize: 14,
+  categoryRowText: {
+    fontSize: 15,
     fontWeight: '600',
     color: '#334155',
   },
-  categoryButtonTextActive: {
+  categoryRowTextActive: {
     color: '#1d4ed8',
+  },
+  emptyText: {
+    padding: 14,
+    fontSize: 14,
+    color: '#64748b',
   },
   errorText: {
     marginTop: 12,
