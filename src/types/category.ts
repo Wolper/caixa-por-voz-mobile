@@ -1,6 +1,7 @@
+export type CategoryType = 'receita' | 'despesa' | string;
+
 export type Category = {
   id: string;
-  name?: string | null;
-  description?: string | null;
-  type?: string | null;
+  name: string;
+  type?: CategoryType | null;
 };
