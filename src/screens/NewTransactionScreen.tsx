@@ -8,7 +8,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-
 import { supabase } from '../lib/supabase';
 
 type TransactionType = 'receita' | 'despesa';
@@ -32,6 +31,12 @@ type SupabaseErrorLike = {
   code?: string;
   details?: string | null;
   hint?: string | null;
+};
+
+type ParsedDateParts = {
+  year: string;
+  month: string;
+  day: string;
 };
 
 function todayIsoDate() {
@@ -68,25 +73,81 @@ function parseBrazilianAmount(value: string): number | null {
   return amount;
 }
 
-function normalizeIsoDate(value: string): string | null {
+function formatAmountForDisplay(amount: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+function parseDateParts(value: string): ParsedDateParts | null {
   const trimmed = value.trim();
 
   if (!trimmed) {
     return null;
   }
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return trimmed;
+  const isoDateMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+
+  if (isoDateMatch) {
+    const [, year, month, day] = isoDateMatch;
+    return { year, month, day };
   }
 
   const brazilianDateMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
 
   if (brazilianDateMatch) {
     const [, day, month, year] = brazilianDateMatch;
-    return `${year}-${month}-${day}`;
+    return { year, month, day };
   }
 
   return null;
+}
+
+function isValidLocalDate({ year, month, day }: ParsedDateParts) {
+  const yearNumber = Number(year);
+  const monthNumber = Number(month);
+  const dayNumber = Number(day);
+
+  if (
+    !Number.isInteger(yearNumber) ||
+    !Number.isInteger(monthNumber) ||
+    !Number.isInteger(dayNumber)
+  ) {
+    return false;
+  }
+
+  const localDate = new Date(yearNumber, monthNumber - 1, dayNumber);
+
+  return (
+    localDate.getFullYear() === yearNumber &&
+    localDate.getMonth() === monthNumber - 1 &&
+    localDate.getDate() === dayNumber
+  );
+}
+
+function normalizeIsoDate(value: string): string | null {
+  const parts = parseDateParts(value);
+
+  if (!parts || !isValidLocalDate(parts)) {
+    return null;
+  }
+
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function formatIsoDateToBR(value: string | null) {
+  if (!value) {
+    return '';
+  }
+
+  const parts = parseDateParts(value);
+
+  if (!parts || !isValidLocalDate(parts)) {
+    return '';
+  }
+
+  return `${parts.day}/${parts.month}/${parts.year}`;
 }
 
 function nullableTrim(value: string) {
@@ -155,6 +216,7 @@ export function NewTransactionScreen({
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
 
   const filteredCategories = useMemo(() => {
     const compatibleCategories = categories.filter((category) => {
@@ -255,6 +317,7 @@ export function NewTransactionScreen({
 
   async function handleSave() {
     setFormError(null);
+    setSaveFeedback(null);
 
     const normalizedAmount = parseBrazilianAmount(amountText);
     const normalizedTransactionDate = normalizeIsoDate(transactionDate);
@@ -276,12 +339,12 @@ export function NewTransactionScreen({
     }
 
     if (!normalizedTransactionDate) {
-      setFormError('Informe uma data válida no formato YYYY-MM-DD ou DD/MM/AAAA.');
+      setFormError('Informe uma data da movimentação válida no formato YYYY-MM-DD ou DD/MM/AAAA.');
       return;
     }
 
     if (dueDate.trim() && !normalizedDueDate) {
-      setFormError('Informe um vencimento válido no formato YYYY-MM-DD ou DD/MM/AAAA.');
+      setFormError('O vencimento é opcional, mas precisa estar em YYYY-MM-DD ou DD/MM/AAAA quando preenchido.');
       return;
     }
 
@@ -305,15 +368,19 @@ export function NewTransactionScreen({
       payment_method: nullableTrim(paymentMethod),
     });
 
-    setSaving(false);
-
     if (error) {
+      setSaving(false);
       logSupabaseError('Erro ao salvar lançamento', error);
       setFormError('Não foi possível salvar o lançamento agora.');
       return;
     }
 
-    onSaved();
+    setSaveFeedback('Lançamento salvo! Atualizando Movimentações...');
+
+    setTimeout(() => {
+      setSaving(false);
+      onSaved();
+    }, 700);
   }
 
   function handleChangeType(nextType: TransactionType) {
@@ -325,6 +392,28 @@ export function NewTransactionScreen({
     setSelectedCategoryId(categoryId);
     setCategorySelectorOpen(false);
   }
+
+  function handleAmountBlur() {
+    const normalizedAmount = parseBrazilianAmount(amountText);
+
+    if (normalizedAmount) {
+      setAmountText(formatAmountForDisplay(normalizedAmount));
+    }
+  }
+
+  function handleDateBlur(value: string, updateValue: (nextValue: string) => void) {
+    const normalizedDate = normalizeIsoDate(value);
+    const formattedDate = formatIsoDateToBR(normalizedDate);
+
+    if (formattedDate) {
+      updateValue(formattedDate);
+    }
+  }
+
+  const categoryEmptyMessage =
+    type === 'receita'
+      ? 'Nenhuma categoria de receita disponível para este controle.'
+      : 'Nenhuma categoria de despesa disponível para este controle.';
 
   return (
     <ScrollView
@@ -340,7 +429,7 @@ export function NewTransactionScreen({
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Tipo</Text>
+        <Text style={styles.label}>Tipo *</Text>
 
         <View style={styles.row}>
           <Pressable
@@ -378,7 +467,7 @@ export function NewTransactionScreen({
           </Pressable>
         </View>
 
-        <Text style={styles.label}>Descrição</Text>
+        <Text style={styles.label}>Descrição *</Text>
         <TextInput
           style={styles.input}
           placeholder="Ex.: Venda no balcão"
@@ -386,24 +475,28 @@ export function NewTransactionScreen({
           onChangeText={setDescription}
         />
 
-        <Text style={styles.label}>Valor</Text>
+        <Text style={styles.label}>Valor *</Text>
         <TextInput
           style={styles.input}
           placeholder="Ex.: 150,00"
           keyboardType="decimal-pad"
           value={amountText}
           onChangeText={setAmountText}
+          onBlur={handleAmountBlur}
         />
+        <Text style={styles.fieldHint}>Aceita vírgula ou ponto: 150,50 ou 150.50.</Text>
 
-        <Text style={styles.label}>Data da movimentação</Text>
+        <Text style={styles.label}>Data da movimentação *</Text>
         <TextInput
           style={styles.input}
           placeholder="YYYY-MM-DD ou DD/MM/AAAA"
           value={transactionDate}
           onChangeText={setTransactionDate}
+          onBlur={() => handleDateBlur(transactionDate, setTransactionDate)}
         />
+        <Text style={styles.fieldHint}>Use YYYY-MM-DD ou DD/MM/AAAA. Ex.: 2026-06-25 ou 25/06/2026.</Text>
 
-        <Text style={styles.label}>Categoria</Text>
+        <Text style={styles.label}>Categoria *</Text>
 
         {loadingCategories ? (
           <View style={styles.loadingBox}>
@@ -436,10 +529,18 @@ export function NewTransactionScreen({
               </Text>
             </Pressable>
 
+            {selectedCategory ? (
+              <Text style={styles.selectedCategoryText}>Categoria selecionada: {selectedCategory.name}</Text>
+            ) : filteredCategories.length === 0 ? (
+              <Text style={styles.emptyText}>{categoryEmptyMessage}</Text>
+            ) : (
+              <Text style={styles.fieldHint}>Toque para escolher uma categoria.</Text>
+            )}
+
             {categorySelectorOpen ? (
               <View style={styles.categoryPanel}>
                 {filteredCategories.length === 0 ? (
-                  <Text style={styles.emptyText}>Nenhuma categoria disponível.</Text>
+                  <Text style={styles.emptyText}>{categoryEmptyMessage}</Text>
                 ) : (
                   filteredCategories.map((category) => {
                     const selected = selectedCategoryId === category.id;
@@ -470,7 +571,7 @@ export function NewTransactionScreen({
           </>
         ) : null}
 
-        <Text style={styles.label}>Status</Text>
+        <Text style={styles.label}>Status *</Text>
 
         <View style={styles.row}>
           <Pressable
@@ -514,7 +615,9 @@ export function NewTransactionScreen({
           placeholder="YYYY-MM-DD ou DD/MM/AAAA"
           value={dueDate}
           onChangeText={setDueDate}
+          onBlur={() => handleDateBlur(dueDate, setDueDate)}
         />
+        <Text style={styles.fieldHint}>Pode ficar em branco. Se preencher, use YYYY-MM-DD ou DD/MM/AAAA.</Text>
 
         <Text style={styles.label}>Fornecedor/cliente, opcional</Text>
         <TextInput
@@ -533,6 +636,7 @@ export function NewTransactionScreen({
         />
 
         {formError ? <Text style={styles.errorText}>{formError}</Text> : null}
+        {saveFeedback ? <Text style={styles.successText}>{saveFeedback}</Text> : null}
 
         <Pressable
           style={[styles.primaryButton, saving && styles.disabledButton]}
@@ -610,6 +714,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     marginHorizontal: -4,
+    marginBottom: 2,
   },
   optionButton: {
     flex: 1,
@@ -644,6 +749,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
     marginLeft: 8,
+  },
+  fieldHint: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#64748b',
   },
   selectButton: {
     minHeight: 50,
@@ -702,13 +813,34 @@ const styles = StyleSheet.create({
   emptyText: {
     padding: 14,
     fontSize: 14,
+    lineHeight: 20,
     color: '#64748b',
+  },
+  selectedCategoryText: {
+    marginTop: 8,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1d4ed8',
+    backgroundColor: '#dbeafe',
   },
   errorText: {
     marginTop: 12,
     fontSize: 14,
     lineHeight: 20,
     color: '#dc2626',
+  },
+  successText: {
+    marginTop: 12,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#166534',
+    backgroundColor: '#dcfce7',
   },
   primaryButton: {
     minHeight: 50,
