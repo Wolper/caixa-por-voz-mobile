@@ -10,7 +10,15 @@ export function formatCurrencyBRL(value: number): string {
 export function formatDateBR(dateLike?: string | null): string {
   if (!dateLike) return '-';
 
-  const parsedDate = new Date(dateLike);
+  const trimmed = dateLike.trim();
+  const isoDateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+
+  if (isoDateOnlyMatch) {
+    const [, year, month, day] = isoDateOnlyMatch;
+    return `${day}/${month}/${year}`;
+  }
+
+  const parsedDate = new Date(trimmed);
   if (Number.isNaN(parsedDate.getTime())) return '-';
 
   return parsedDate.toLocaleDateString('pt-BR');
