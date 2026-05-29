@@ -16,9 +16,10 @@ const profileTypeLabel: Record<Control['profile_type'], string> = {
 
 type Props = {
   onOpenTransactions: (params: { controlId: string; controlName: string }) => void;
+  onOpenAccounts: (params: { controlId: string; controlName: string }) => void;
 };
 
-export function ControlsScreen({ onOpenTransactions }: Props) {
+export function ControlsScreen({ onOpenTransactions, onOpenAccounts }: Props) {
   const { signOut } = useAuth();
   const [controls, setControls] = useState<Control[]>([]);
   const [selectedControlId, setSelectedControlId] = useState<string | null>(null);
@@ -81,6 +82,11 @@ export function ControlsScreen({ onOpenTransactions }: Props) {
     onOpenTransactions({ controlId: selectedControl.id, controlName: selectedControl.name });
   };
 
+  const handleOpenAccounts = () => {
+    if (!selectedControl) return;
+    onOpenAccounts({ controlId: selectedControl.id, controlName: selectedControl.name });
+  };
+
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
@@ -134,6 +140,10 @@ export function ControlsScreen({ onOpenTransactions }: Props) {
 
           <Pressable style={[styles.openButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenTransactions}>
             <Text style={styles.openButtonText}>Ver Movimentações</Text>
+          </Pressable>
+
+          <Pressable style={[styles.accountsButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenAccounts}>
+            <Text style={styles.accountsButtonText}>Ver Contas</Text>
           </Pressable>
         </View>
       )}
@@ -226,6 +236,17 @@ const styles = StyleSheet.create({
   openButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  accountsButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1b64d9',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  accountsButtonText: {
+    color: '#1b64d9',
+    fontWeight: '700',
   },
   secondaryButton: {
     borderRadius: 10,
