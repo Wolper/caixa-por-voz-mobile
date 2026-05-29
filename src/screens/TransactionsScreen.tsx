@@ -92,6 +92,7 @@ type Props = {
   selectedControlName: string;
   onBack: () => void;
   onNewTransaction: () => void;
+  onOpenAccounts: () => void;
   onEditTransaction: (transaction: Transaction) => void;
   refreshSignal?: number;
 };
@@ -101,6 +102,7 @@ export function TransactionsScreen({
   selectedControlName,
   onBack,
   onNewTransaction,
+  onOpenAccounts,
   onEditTransaction,
   refreshSignal,
 }: Props) {
@@ -339,9 +341,14 @@ export function TransactionsScreen({
         <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
       </View>
 
-      <Pressable style={styles.newTransactionButton} onPress={onNewTransaction}>
-        <Text style={styles.newTransactionButtonText}>Novo lançamento</Text>
-      </Pressable>
+      <View style={styles.topActions}>
+        <Pressable style={styles.newTransactionButton} onPress={onNewTransaction}>
+          <Text style={styles.newTransactionButtonText}>Novo lançamento</Text>
+        </Pressable>
+        <Pressable style={styles.accountsButton} onPress={onOpenAccounts}>
+          <Text style={styles.accountsButtonText}>Ver Contas</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.summaryBox}>
         <Text style={styles.summaryLabel}>Resumo dos lançamentos filtrados</Text>
@@ -500,8 +507,11 @@ const styles = StyleSheet.create({
   header: { gap: 6, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 15, color: '#3b3b3b' },
-  newTransactionButton: { backgroundColor: '#111', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginBottom: 12 },
+  topActions: { gap: 8, marginBottom: 12 },
+  newTransactionButton: { backgroundColor: '#111', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   newTransactionButtonText: { color: '#fff', fontWeight: '600' },
+  accountsButton: { borderWidth: 1, borderColor: '#1b64d9', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  accountsButtonText: { color: '#1b64d9', fontWeight: '700' },
   summaryBox: { borderWidth: 1, borderColor: '#d9d9d9', borderRadius: 12, padding: 12, gap: 4, marginBottom: 12 },
   summaryLabel: { fontSize: 13, color: '#555', fontWeight: '600' },
   summaryText: { fontSize: 15, color: '#222' },

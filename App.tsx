@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ControlsScreen } from './src/screens/ControlsScreen';
+import { AccountsScreen } from './src/screens/AccountsScreen';
 import { NewTransactionScreen } from './src/screens/NewTransactionScreen';
 import { TransactionsScreen } from './src/screens/TransactionsScreen';
 import type { Transaction } from './src/types/transaction';
@@ -17,6 +18,7 @@ type SelectedControl = {
 type AppRoute =
   | { name: 'controls' }
   | ({ name: 'transactions' } & SelectedControl)
+  | ({ name: 'accounts'; from: 'controls' | 'transactions' } & SelectedControl)
   | ({ name: 'new-transaction' } & SelectedControl)
   | ({ name: 'edit-transaction'; transaction: Transaction } & SelectedControl);
 
@@ -105,6 +107,27 @@ function Root() {
   }
 
 
+  if (route.name === 'accounts') {
+    return (
+      <AccountsScreen
+        selectedControlId={route.selectedControlId}
+        selectedControlName={route.selectedControlName}
+        backLabel={route.from === 'transactions' ? 'Voltar para Movimentações' : 'Voltar para Meus controles'}
+        onBack={() =>
+          setRoute(
+            route.from === 'transactions'
+              ? {
+                  name: 'transactions',
+                  selectedControlId: route.selectedControlId,
+                  selectedControlName: route.selectedControlName,
+                }
+              : { name: 'controls' },
+          )
+        }
+      />
+    );
+  }
+
   if (route.name === 'new-transaction' || route.name === 'edit-transaction') {
     return (
       <NewTransactionScreen
@@ -144,6 +167,14 @@ function Root() {
             selectedControlName: route.selectedControlName,
           })
         }
+        onOpenAccounts={() =>
+          setRoute({
+            name: 'accounts',
+            from: 'transactions',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
         onEditTransaction={(transaction) =>
           setRoute({
             name: 'edit-transaction',
@@ -162,6 +193,14 @@ function Root() {
       onOpenTransactions={({ controlId, controlName }) =>
         setRoute({
           name: 'transactions',
+          selectedControlId: controlId,
+          selectedControlName: controlName,
+        })
+      }
+      onOpenAccounts={({ controlId, controlName }) =>
+        setRoute({
+          name: 'accounts',
+          from: 'controls',
           selectedControlId: controlId,
           selectedControlName: controlName,
         })
