@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/AuthContext';
@@ -20,11 +20,14 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
 
   const loadTransactions = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
+    setSuccessMessage(null);
 
     try {
       const { data, error } = await supabase
@@ -105,6 +108,61 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
     );
   }, [transactions]);
 
+  const deleteTransaction = async (transactionId: string) => {
+    setDeletingTransactionId(transactionId);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', transactionId)
+        .eq('company_id', selectedControlId)
+        .select('id')
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        throw new Error('Lançamento não encontrado ou sem permissão para excluir.');
+      }
+
+      await loadTransactions();
+      setSuccessMessage('Lançamento excluído com sucesso.');
+    } catch (error) {
+      const supabaseError = error as { message?: string; code?: string; details?: string; hint?: string };
+
+      console.error('Erro ao excluir lançamento', {
+        message: supabaseError?.message,
+        code: supabaseError?.code,
+        details: supabaseError?.details,
+        hint: supabaseError?.hint,
+      });
+
+      setErrorMessage('Não foi possível excluir este lançamento agora. Tente novamente.');
+    } finally {
+      setDeletingTransactionId(null);
+    }
+  };
+
+  const handleDeleteTransaction = (transaction: Transaction) => {
+    Alert.alert(
+      'Excluir lançamento',
+      'Tem certeza que deseja excluir este lançamento? Esta ação não pode ser desfeita.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () => {
+            void deleteTransaction(transaction.id);
+          },
+        },
+      ],
+    );
+  };
+
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
@@ -130,6 +188,8 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
         <Text style={styles.summaryText}>Despesas: {formatCurrencyBRL(summary.despesas)}</Text>
         <Text style={styles.summaryBalance}>Saldo do período: {formatCurrencyBRL(summary.receitas - summary.despesas)}</Text>
       </View>
+
+      {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
       {loading ? (
         <View style={styles.centeredContent}>
@@ -163,6 +223,13 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
                 <Text style={styles.transactionInfo}>Data: {formatDateBR(date)}</Text>
                 {transaction.status ? <Text style={styles.transactionInfo}>Status: {transaction.status}</Text> : null}
                 {dueDate ? <Text style={styles.transactionInfo}>Vencimento: {formatDateBR(dueDate)}</Text> : null}
+                <Pressable
+                  style={[styles.deleteButton, deletingTransactionId === transaction.id ? styles.disabledButton : null]}
+                  onPress={() => handleDeleteTransaction(transaction)}
+                  disabled={deletingTransactionId === transaction.id}
+                >
+                  <Text style={styles.deleteButtonText}>{deletingTransactionId === transaction.id ? 'Excluindo...' : 'Excluir'}</Text>
+                </Pressable>
               </View>
             );
           })}
@@ -194,11 +261,15 @@ const styles = StyleSheet.create({
   centeredContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   feedbackText: { textAlign: 'center', color: '#444', fontSize: 16 },
   errorText: { textAlign: 'center', color: '#b00020', fontSize: 16 },
+  successText: { textAlign: 'center', color: '#116329', fontSize: 15, marginBottom: 12 },
   listContainer: { flex: 1 },
   listContent: { gap: 10, paddingBottom: 12 },
   transactionCard: { borderRadius: 12, borderWidth: 1, borderColor: '#d9d9d9', padding: 14, gap: 3 },
   transactionDescription: { fontSize: 16, fontWeight: '700', color: '#111' },
   transactionInfo: { fontSize: 14, color: '#333' },
+  deleteButton: { alignSelf: 'flex-start', marginTop: 8, borderRadius: 8, borderWidth: 1, borderColor: '#b00020', paddingHorizontal: 12, paddingVertical: 8 },
+  deleteButtonText: { color: '#b00020', fontWeight: '700' },
+  disabledButton: { opacity: 0.6 },
   footerButtons: { gap: 10, marginTop: 10 },
   secondaryButton: { borderRadius: 10, borderWidth: 1, borderColor: '#333', paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },
   secondaryButtonText: { color: '#111', fontWeight: '600' },
