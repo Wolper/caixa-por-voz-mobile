@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ControlsScreen } from './src/screens/ControlsScreen';
+import { DashboardScreen } from './src/screens/DashboardScreen';
 import { AccountsScreen } from './src/screens/AccountsScreen';
 import { NewTransactionScreen } from './src/screens/NewTransactionScreen';
 import { TransactionsScreen } from './src/screens/TransactionsScreen';
@@ -17,9 +18,10 @@ type SelectedControl = {
 
 type AppRoute =
   | { name: 'controls' }
+  | ({ name: 'dashboard' } & SelectedControl)
   | ({ name: 'transactions' } & SelectedControl)
-  | ({ name: 'accounts'; from: 'controls' | 'transactions' } & SelectedControl)
-  | ({ name: 'new-transaction' } & SelectedControl)
+  | ({ name: 'accounts'; from: 'controls' | 'dashboard' | 'transactions' } & SelectedControl)
+  | ({ name: 'new-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
   | ({ name: 'edit-transaction'; transaction: Transaction } & SelectedControl);
 
 function AuthScreen() {
@@ -92,6 +94,7 @@ function Root() {
   const { user, loading } = useAuth();
   const [route, setRoute] = useState<AppRoute>({ name: 'controls' });
   const [transactionsRefreshSignal, setTransactionsRefreshSignal] = useState(0);
+  const [dashboardRefreshSignal, setDashboardRefreshSignal] = useState(0);
 
   if (loading) {
     return (
@@ -112,7 +115,13 @@ function Root() {
       <AccountsScreen
         selectedControlId={route.selectedControlId}
         selectedControlName={route.selectedControlName}
-        backLabel={route.from === 'transactions' ? 'Voltar para Movimentações' : 'Voltar para Meus controles'}
+        backLabel={
+          route.from === 'transactions'
+            ? 'Voltar para Movimentações'
+            : route.from === 'dashboard'
+              ? 'Voltar para Início'
+              : 'Voltar para Meus controles'
+        }
         onBack={() =>
           setRoute(
             route.from === 'transactions'
@@ -121,7 +130,13 @@ function Root() {
                   selectedControlId: route.selectedControlId,
                   selectedControlName: route.selectedControlName,
                 }
-              : { name: 'controls' },
+              : route.from === 'dashboard'
+                ? {
+                    name: 'dashboard',
+                    selectedControlId: route.selectedControlId,
+                    selectedControlName: route.selectedControlName,
+                  }
+                : { name: 'controls' },
           )
         }
       />
@@ -129,6 +144,8 @@ function Root() {
   }
 
   if (route.name === 'new-transaction' || route.name === 'edit-transaction') {
+    const returnRouteName = route.name === 'new-transaction' ? route.from : 'transactions';
+
     return (
       <NewTransactionScreen
         selectedControlId={route.selectedControlId}
@@ -137,19 +154,54 @@ function Root() {
         }
         onBack={() =>
           setRoute({
-            name: 'transactions',
+            name: returnRouteName,
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
           })
         }
         onSaved={() => {
           setTransactionsRefreshSignal((value) => value + 1);
+          setDashboardRefreshSignal((value) => value + 1);
           setRoute({
-            name: 'transactions',
+            name: returnRouteName,
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
           });
         }}
+      />
+    );
+  }
+
+  if (route.name === 'dashboard') {
+    return (
+      <DashboardScreen
+        selectedControlId={route.selectedControlId}
+        selectedControlName={route.selectedControlName}
+        refreshSignal={dashboardRefreshSignal}
+        onBackToControls={() => setRoute({ name: 'controls' })}
+        onNewTransaction={() =>
+          setRoute({
+            name: 'new-transaction',
+            from: 'dashboard',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onOpenTransactions={() =>
+          setRoute({
+            name: 'transactions',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onOpenAccounts={() =>
+          setRoute({
+            name: 'accounts',
+            from: 'dashboard',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
       />
     );
   }
@@ -159,10 +211,17 @@ function Root() {
       <TransactionsScreen
         selectedControlId={route.selectedControlId}
         selectedControlName={route.selectedControlName}
-        onBack={() => setRoute({ name: 'controls' })}
+        onBack={() =>
+          setRoute({
+            name: 'dashboard',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
         onNewTransaction={() =>
           setRoute({
             name: 'new-transaction',
+            from: 'transactions',
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
           })
@@ -190,9 +249,9 @@ function Root() {
 
   return (
     <ControlsScreen
-      onOpenTransactions={({ controlId, controlName }) =>
+      onOpenDashboard={({ controlId, controlName }) =>
         setRoute({
-          name: 'transactions',
+          name: 'dashboard',
           selectedControlId: controlId,
           selectedControlName: controlName,
         })

@@ -492,7 +492,7 @@ export function TransactionsScreen({
 
       <View style={styles.footerButtons}>
         <Pressable style={styles.secondaryButton} onPress={onBack}>
-          <Text style={styles.secondaryButtonText}>Voltar para Meus controles</Text>
+          <Text style={styles.secondaryButtonText}>Voltar para Início</Text>
         </Pressable>
         <Pressable style={styles.logoutButton} onPress={handleSignOut} disabled={signingOut}>
           <Text style={styles.logoutButtonText}>{signingOut ? 'Saindo...' : 'Sair'}</Text>
