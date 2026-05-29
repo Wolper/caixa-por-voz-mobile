@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
+import type { Transaction } from '../types/transaction';
 
 type TransactionType = 'receita' | 'despesa';
 type TransactionStatus = 'pago' | 'pendente';
@@ -24,6 +25,7 @@ type NewTransactionScreenProps = {
   selectedControlId: string;
   onBack: () => void;
   onSaved: () => void;
+  transactionToEdit?: Transaction;
 };
 
 type SupabaseErrorLike = {
@@ -150,6 +152,27 @@ function formatIsoDateToBR(value: string | null) {
   return `${parts.day}/${parts.month}/${parts.year}`;
 }
 
+function normalizeTransactionType(value?: string | null): TransactionType {
+  return value === 'receita' ? 'receita' : 'despesa';
+}
+
+function normalizeTransactionStatus(value?: string | null): TransactionStatus {
+  return value === 'pendente' ? 'pendente' : 'pago';
+}
+
+function toEditableAmount(value?: number | string | null) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? formatAmountForDisplay(value) : '';
+  }
+
+  if (typeof value === 'string') {
+    const amount = parseBrazilianAmount(value);
+    return amount ? formatAmountForDisplay(amount) : value;
+  }
+
+  return '';
+}
+
 function nullableTrim(value: string) {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
@@ -198,7 +221,9 @@ export function NewTransactionScreen({
   selectedControlId,
   onBack,
   onSaved,
+  transactionToEdit,
 }: NewTransactionScreenProps) {
+  const isEditing = Boolean(transactionToEdit);
   const [type, setType] = useState<TransactionType>('despesa');
   const [description, setDescription] = useState('');
   const [amountText, setAmountText] = useState('');
@@ -217,6 +242,29 @@ export function NewTransactionScreen({
   const [formError, setFormError] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!transactionToEdit) {
+      return;
+    }
+
+    setType(normalizeTransactionType(transactionToEdit.type));
+    setDescription(transactionToEdit.description ?? '');
+    setAmountText(toEditableAmount(transactionToEdit.amount));
+    setTransactionDate(
+      formatIsoDateToBR(transactionToEdit.transaction_date ?? null) ||
+        transactionToEdit.transaction_date ||
+        todayIsoDate(),
+    );
+    setStatus(normalizeTransactionStatus(transactionToEdit.status));
+    setDueDate(formatIsoDateToBR(transactionToEdit.due_date ?? null) || transactionToEdit.due_date || '');
+    setSupplierCustomer(transactionToEdit.supplier_customer ?? '');
+    setPaymentMethod(transactionToEdit.payment_method ?? '');
+    setSelectedCategoryId(transactionToEdit.category_id ?? '');
+    setCategorySelectorOpen(false);
+    setFormError(null);
+    setSaveFeedback(null);
+  }, [transactionToEdit]);
 
   const filteredCategories = useMemo(() => {
     const compatibleCategories = categories.filter((category) => {
@@ -237,12 +285,13 @@ export function NewTransactionScreen({
   useEffect(() => {
     if (
       selectedCategoryId &&
+      categories.length > 0 &&
       !filteredCategories.some((category) => category.id === selectedCategoryId)
     ) {
       setSelectedCategoryId('');
       setCategorySelectorOpen(false);
     }
-  }, [filteredCategories, selectedCategoryId]);
+  }, [categories.length, filteredCategories, selectedCategoryId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -355,7 +404,7 @@ export function NewTransactionScreen({
 
     setSaving(true);
 
-    const { error } = await supabase.from('transactions').insert({
+    const payload = {
       company_id: selectedControlId,
       category_id: selectedCategoryId,
       type,
@@ -366,16 +415,45 @@ export function NewTransactionScreen({
       status,
       supplier_customer: nullableTrim(supplierCustomer),
       payment_method: nullableTrim(paymentMethod),
-    });
+    };
 
-    if (error) {
-      setSaving(false);
-      logSupabaseError('Erro ao salvar lançamento', error);
-      setFormError('Não foi possível salvar o lançamento agora.');
-      return;
+    if (transactionToEdit) {
+      const { data, error } = await supabase
+        .from('transactions')
+        .update(payload)
+        .eq('id', transactionToEdit.id)
+        .eq('company_id', selectedControlId)
+        .select('id')
+        .maybeSingle();
+
+      if (error) {
+        setSaving(false);
+        logSupabaseError('Erro ao atualizar lançamento', error);
+        setFormError('Não foi possível atualizar o lançamento agora.');
+        return;
+      }
+
+      if (!data) {
+        setSaving(false);
+        setFormError('Lançamento não encontrado ou sem permissão para editar.');
+        return;
+      }
+    } else {
+      const { error } = await supabase.from('transactions').insert(payload);
+
+      if (error) {
+        setSaving(false);
+        logSupabaseError('Erro ao salvar lançamento', error);
+        setFormError('Não foi possível salvar o lançamento agora.');
+        return;
+      }
     }
 
-    setSaveFeedback('Lançamento salvo! Atualizando Movimentações...');
+    setSaveFeedback(
+      isEditing
+        ? 'Lançamento atualizado! Atualizando Movimentações...'
+        : 'Lançamento salvo! Atualizando Movimentações...',
+    );
 
     setTimeout(() => {
       setSaving(false);
@@ -422,9 +500,11 @@ export function NewTransactionScreen({
     >
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Controle atual</Text>
-        <Text style={styles.title}>Novo lançamento</Text>
+        <Text style={styles.title}>{isEditing ? 'Editar lançamento' : 'Novo lançamento'}</Text>
         <Text style={styles.subtitle}>
-          Registre uma receita ou despesa manualmente.
+          {isEditing
+            ? 'Atualize os dados do lançamento selecionado.'
+            : 'Registre uma receita ou despesa manualmente.'}
         </Text>
       </View>
 
@@ -646,12 +726,16 @@ export function NewTransactionScreen({
           {saving ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text style={styles.primaryButtonText}>Salvar lançamento</Text>
+            <Text style={styles.primaryButtonText}>
+              {isEditing ? 'Salvar edição' : 'Salvar lançamento'}
+            </Text>
           )}
         </Pressable>
 
         <Pressable style={styles.secondaryButton} onPress={onBack} disabled={saving}>
-          <Text style={styles.secondaryButtonText}>Voltar para Movimentações</Text>
+          <Text style={styles.secondaryButtonText}>
+            {isEditing ? 'Cancelar edição' : 'Voltar para Movimentações'}
+          </Text>
         </Pressable>
       </View>
     </ScrollView>
