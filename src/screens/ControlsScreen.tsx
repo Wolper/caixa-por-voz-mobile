@@ -15,11 +15,11 @@ const profileTypeLabel: Record<Control['profile_type'], string> = {
 };
 
 type Props = {
-  onOpenTransactions: (params: { controlId: string; controlName: string }) => void;
+  onOpenDashboard: (params: { controlId: string; controlName: string }) => void;
   onOpenAccounts: (params: { controlId: string; controlName: string }) => void;
 };
 
-export function ControlsScreen({ onOpenTransactions, onOpenAccounts }: Props) {
+export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
   const { signOut } = useAuth();
   const [controls, setControls] = useState<Control[]>([]);
   const [selectedControlId, setSelectedControlId] = useState<string | null>(null);
@@ -72,14 +72,15 @@ export function ControlsScreen({ onOpenTransactions, onOpenAccounts }: Props) {
 
   const currentControlName = selectedControl?.name ?? 'Nenhum controle selecionado';
 
-  const handleSelectControl = async (controlId: string) => {
-    setSelectedControlId(controlId);
-    await AsyncStorage.setItem(SELECTED_CONTROL_STORAGE_KEY, controlId);
+  const handleOpenDashboard = () => {
+    if (!selectedControl) return;
+    onOpenDashboard({ controlId: selectedControl.id, controlName: selectedControl.name });
   };
 
-  const handleOpenTransactions = () => {
-    if (!selectedControl) return;
-    onOpenTransactions({ controlId: selectedControl.id, controlName: selectedControl.name });
+  const handleSelectAndOpenDashboard = async (control: Control) => {
+    setSelectedControlId(control.id);
+    await AsyncStorage.setItem(SELECTED_CONTROL_STORAGE_KEY, control.id);
+    onOpenDashboard({ controlId: control.id, controlName: control.name });
   };
 
   const handleOpenAccounts = () => {
@@ -129,7 +130,7 @@ export function ControlsScreen({ onOpenTransactions, onOpenAccounts }: Props) {
               <Pressable
                 key={control.id}
                 style={[styles.controlCard, isSelected ? styles.controlCardSelected : undefined]}
-                onPress={() => handleSelectControl(control.id)}
+                onPress={() => handleSelectAndOpenDashboard(control)}
               >
                 <Text style={styles.controlName}>{control.name}</Text>
                 <Text style={styles.controlType}>{profileTypeLabel[control.profile_type]}</Text>
@@ -138,8 +139,8 @@ export function ControlsScreen({ onOpenTransactions, onOpenAccounts }: Props) {
             );
           })}
 
-          <Pressable style={[styles.openButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenTransactions}>
-            <Text style={styles.openButtonText}>Ver Movimentações</Text>
+          <Pressable style={[styles.openButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenDashboard}>
+            <Text style={styles.openButtonText}>Abrir Início</Text>
           </Pressable>
 
           <Pressable style={[styles.accountsButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenAccounts}>
