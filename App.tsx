@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ControlsScreen } from './src/screens/ControlsScreen';
 import { NewTransactionScreen } from './src/screens/NewTransactionScreen';
 import { TransactionsScreen } from './src/screens/TransactionsScreen';
+import type { Transaction } from './src/types/transaction';
 
 type SelectedControl = {
   selectedControlId: string;
@@ -16,7 +17,8 @@ type SelectedControl = {
 type AppRoute =
   | { name: 'controls' }
   | ({ name: 'transactions' } & SelectedControl)
-  | ({ name: 'new-transaction' } & SelectedControl);
+  | ({ name: 'new-transaction' } & SelectedControl)
+  | ({ name: 'edit-transaction'; transaction: Transaction } & SelectedControl);
 
 function AuthScreen() {
   const { signIn, signUp } = useAuth();
@@ -103,10 +105,13 @@ function Root() {
   }
 
 
-  if (route.name === 'new-transaction') {
+  if (route.name === 'new-transaction' || route.name === 'edit-transaction') {
     return (
       <NewTransactionScreen
         selectedControlId={route.selectedControlId}
+        transactionToEdit={
+          route.name === 'edit-transaction' ? route.transaction : undefined
+        }
         onBack={() =>
           setRoute({
             name: 'transactions',
@@ -137,6 +142,14 @@ function Root() {
             name: 'new-transaction',
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
+          })
+        }
+        onEditTransaction={(transaction) =>
+          setRoute({
+            name: 'edit-transaction',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+            transaction,
           })
         }
         refreshSignal={transactionsRefreshSignal}

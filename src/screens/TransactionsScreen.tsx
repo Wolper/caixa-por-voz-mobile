@@ -12,10 +12,18 @@ type Props = {
   selectedControlName: string;
   onBack: () => void;
   onNewTransaction: () => void;
+  onEditTransaction: (transaction: Transaction) => void;
   refreshSignal?: number;
 };
 
-export function TransactionsScreen({ selectedControlId, selectedControlName, onBack, onNewTransaction, refreshSignal }: Props) {
+export function TransactionsScreen({
+  selectedControlId,
+  selectedControlName,
+  onBack,
+  onNewTransaction,
+  onEditTransaction,
+  refreshSignal,
+}: Props) {
   const { signOut } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +41,7 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
       const { data, error } = await supabase
         .from('transactions')
         .select(
-          'id, company_id, type, description, amount, status, transaction_date, due_date, supplier_customer, settled_at, settled_amount, created_at',
+          'id, company_id, category_id, type, description, amount, status, transaction_date, due_date, supplier_customer, payment_method, settled_at, settled_amount, created_at',
         )
         .eq('company_id', selectedControlId)
         .order('transaction_date', { ascending: false, nullsFirst: false });
@@ -57,7 +65,7 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
         const { data, error: fallbackError } = await supabase
           .from('transactions')
           .select(
-            'id, company_id, type, description, amount, status, transaction_date, due_date, supplier_customer, settled_at, settled_amount, created_at',
+            'id, company_id, category_id, type, description, amount, status, transaction_date, due_date, supplier_customer, payment_method, settled_at, settled_amount, created_at',
           )
           .eq('company_id', selectedControlId)
           .order('created_at', { ascending: false, nullsFirst: false });
@@ -223,13 +231,26 @@ export function TransactionsScreen({ selectedControlId, selectedControlName, onB
                 <Text style={styles.transactionInfo}>Data: {formatDateBR(date)}</Text>
                 {transaction.status ? <Text style={styles.transactionInfo}>Status: {transaction.status}</Text> : null}
                 {dueDate ? <Text style={styles.transactionInfo}>Vencimento: {formatDateBR(dueDate)}</Text> : null}
-                <Pressable
-                  style={[styles.deleteButton, deletingTransactionId === transaction.id ? styles.disabledButton : null]}
-                  onPress={() => handleDeleteTransaction(transaction)}
-                  disabled={deletingTransactionId === transaction.id}
-                >
-                  <Text style={styles.deleteButtonText}>{deletingTransactionId === transaction.id ? 'Excluindo...' : 'Excluir'}</Text>
-                </Pressable>
+                {transaction.payment_method ? (
+                  <Text style={styles.transactionInfo}>Forma de pagamento: {transaction.payment_method}</Text>
+                ) : null}
+                <View style={styles.transactionActions}>
+                  <Pressable
+                    style={styles.editButton}
+                    onPress={() => onEditTransaction(transaction)}
+                    disabled={deletingTransactionId === transaction.id}
+                  >
+                    <Text style={styles.editButtonText}>Editar</Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[styles.deleteButton, deletingTransactionId === transaction.id ? styles.disabledButton : null]}
+                    onPress={() => handleDeleteTransaction(transaction)}
+                    disabled={deletingTransactionId === transaction.id}
+                  >
+                    <Text style={styles.deleteButtonText}>{deletingTransactionId === transaction.id ? 'Excluindo...' : 'Excluir'}</Text>
+                  </Pressable>
+                </View>
               </View>
             );
           })}
@@ -267,7 +288,10 @@ const styles = StyleSheet.create({
   transactionCard: { borderRadius: 12, borderWidth: 1, borderColor: '#d9d9d9', padding: 14, gap: 3 },
   transactionDescription: { fontSize: 16, fontWeight: '700', color: '#111' },
   transactionInfo: { fontSize: 14, color: '#333' },
-  deleteButton: { alignSelf: 'flex-start', marginTop: 8, borderRadius: 8, borderWidth: 1, borderColor: '#b00020', paddingHorizontal: 12, paddingVertical: 8 },
+  transactionActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  editButton: { borderRadius: 8, borderWidth: 1, borderColor: '#1b64d9', paddingHorizontal: 12, paddingVertical: 8 },
+  editButtonText: { color: '#1b64d9', fontWeight: '700' },
+  deleteButton: { borderRadius: 8, borderWidth: 1, borderColor: '#b00020', paddingHorizontal: 12, paddingVertical: 8 },
   deleteButtonText: { color: '#b00020', fontWeight: '700' },
   disabledButton: { opacity: 0.6 },
   footerButtons: { gap: 10, marginTop: 10 },
