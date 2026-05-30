@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { Category } from '../types/category';
 import { Transaction } from '../types/transaction';
+import { buildCsv } from '../utils/csv';
 import { formatCurrencyBRL, formatDateBR, toNumber } from '../utils/formatters';
 
 type TransactionFilterType = 'all' | 'receita' | 'despesa';
@@ -24,6 +26,70 @@ type ParsedTransactionFilters = {
 };
 
 const initialFilters: TransactionFilters = { description: '', type: 'all', startDate: '', endDate: '' };
+
+const transactionCsvHeader = [
+  'Data da movimentação',
+  'Tipo',
+  'Descrição',
+  'Categoria',
+  'Valor',
+  'Status',
+  'Vencimento',
+  'Forma de pagamento',
+];
+
+async function addCategoryNamesToTransactions(transactions: Transaction[], selectedControlId: string): Promise<Transaction[]> {
+  const categoryIds = Array.from(
+    new Set(transactions.map((transaction) => transaction.category_id).filter((categoryId): categoryId is string => Boolean(categoryId))),
+  );
+
+  if (categoryIds.length === 0) return transactions;
+
+  const { data, error } = await supabase
+    .from('categories')
+    .select('id, name, company_id')
+    .eq('company_id', selectedControlId)
+    .in('id', categoryIds);
+
+  if (error) {
+    if (__DEV__) {
+      console.error('Erro ao carregar categorias das movimentações', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
+    }
+
+    return transactions;
+  }
+
+  const categoriesById = new Map<string, string>();
+
+  ((data ?? []) as Category[]).forEach((category) => {
+    categoriesById.set(category.id, category.name);
+  });
+
+  return transactions.map((transaction) => ({
+    ...transaction,
+    categoryName: transaction.category_id ? categoriesById.get(transaction.category_id) ?? null : null,
+  }));
+}
+
+function buildTransactionsCsv(transactions: Transaction[]): string {
+  const rows = transactions.map((transaction) => [
+    formatDateBR(transaction.transaction_date ?? transaction.date),
+    transaction.type ?? transaction.tipo ?? '',
+    transaction.description ?? '',
+    transaction.categoryName ?? '',
+    formatCurrencyBRL(toNumber(transaction.amount ?? transaction.value)),
+    transaction.status ?? '',
+    formatDateBR(transaction.due_date ?? transaction.vencimento),
+    transaction.payment_method ?? '',
+  ]);
+
+  return buildCsv([transactionCsvHeader, ...rows]);
+}
 
 function parseFilterDate(value: string): string | null {
   const trimmed = value.trim();
@@ -112,6 +178,7 @@ export function TransactionsScreen({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [deletingTransactionId, setDeletingTransactionId] = useState<string | null>(null);
+  const [exportingCsv, setExportingCsv] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [filters, setFilters] = useState<TransactionFilters>(initialFilters);
   const [appliedFilters, setAppliedFilters] = useState<ParsedTransactionFilters>({
@@ -155,7 +222,7 @@ export function TransactionsScreen({
 
       if (error) throw error;
 
-      setTransactions((data ?? []) as Transaction[]);
+      setTransactions(await addCategoryNamesToTransactions((data ?? []) as Transaction[], selectedControlId));
     } catch (error) {
       const supabaseError = error as { message?: string; code?: string; details?: string; hint?: string };
 
@@ -196,7 +263,7 @@ export function TransactionsScreen({
 
         if (fallbackError) throw fallbackError;
 
-        setTransactions((data ?? []) as Transaction[]);
+        setTransactions(await addCategoryNamesToTransactions((data ?? []) as Transaction[], selectedControlId));
       } catch (fallbackErr) {
         if (__DEV__) {
           const fallback = fallbackErr as { message?: string; code?: string; details?: string; hint?: string };
@@ -325,6 +392,44 @@ export function TransactionsScreen({
     setAppliedFilters({ description: '', type: 'all', startDate: null, endDate: null });
   };
 
+  const handleExportCsv = async () => {
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (transactions.length === 0) {
+      const message = hasActiveAppliedFilters
+        ? 'Não há movimentações para exportar com os filtros aplicados.'
+        : 'Não há movimentações para exportar neste controle.';
+
+      setSuccessMessage(message);
+      Alert.alert('Exportar CSV', message);
+      return;
+    }
+
+    setExportingCsv(true);
+
+    try {
+      const csvContent = buildTransactionsCsv(transactions);
+      const result = await Share.share({
+        title: 'Movimentações em CSV',
+        message: csvContent,
+      });
+
+      if (result.action === Share.dismissedAction) {
+        setSuccessMessage('Exportação cancelada. Você pode tentar novamente quando quiser.');
+        return;
+      }
+
+      setSuccessMessage('CSV gerado com sucesso. Use a opção escolhida para compartilhar ou copiar o conteúdo.');
+    } catch (error) {
+      console.error('Erro ao exportar movimentações em CSV', error);
+      setErrorMessage('Não foi possível exportar o CSV agora. Tente novamente.');
+      Alert.alert('Exportar CSV', 'Não foi possível exportar o CSV agora. Tente novamente.');
+    } finally {
+      setExportingCsv(false);
+    }
+  };
+
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
@@ -347,6 +452,13 @@ export function TransactionsScreen({
         </Pressable>
         <Pressable style={styles.accountsButton} onPress={onOpenAccounts}>
           <Text style={styles.accountsButtonText}>Ver Contas</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.exportButton, exportingCsv || loading ? styles.disabledButton : null]}
+          onPress={handleExportCsv}
+          disabled={exportingCsv || loading}
+        >
+          <Text style={styles.exportButtonText}>{exportingCsv ? 'Exportando...' : 'Exportar CSV'}</Text>
         </Pressable>
       </View>
 
@@ -512,6 +624,8 @@ const styles = StyleSheet.create({
   newTransactionButtonText: { color: '#fff', fontWeight: '600' },
   accountsButton: { borderWidth: 1, borderColor: '#1b64d9', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   accountsButtonText: { color: '#1b64d9', fontWeight: '700' },
+  exportButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  exportButtonText: { color: '#116329', fontWeight: '700' },
   summaryBox: { borderWidth: 1, borderColor: '#d9d9d9', borderRadius: 12, padding: 12, gap: 4, marginBottom: 12 },
   summaryLabel: { fontSize: 13, color: '#555', fontWeight: '600' },
   summaryText: { fontSize: 15, color: '#222' },
