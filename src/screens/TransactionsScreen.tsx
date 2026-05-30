@@ -158,6 +158,7 @@ type Props = {
   selectedControlName: string;
   onBack: () => void;
   onNewTransaction: () => void;
+  onTextTransaction: () => void;
   onOpenAccounts: () => void;
   onEditTransaction: (transaction: Transaction) => void;
   refreshSignal?: number;
@@ -168,6 +169,7 @@ export function TransactionsScreen({
   selectedControlName,
   onBack,
   onNewTransaction,
+  onTextTransaction,
   onOpenAccounts,
   onEditTransaction,
   refreshSignal,
@@ -450,6 +452,9 @@ export function TransactionsScreen({
         <Pressable style={styles.newTransactionButton} onPress={onNewTransaction}>
           <Text style={styles.newTransactionButtonText}>Novo lançamento</Text>
         </Pressable>
+        <Pressable style={styles.textTransactionButton} onPress={onTextTransaction}>
+          <Text style={styles.textTransactionButtonText}>Registrar por texto</Text>
+        </Pressable>
         <Pressable style={styles.accountsButton} onPress={onOpenAccounts}>
           <Text style={styles.accountsButtonText}>Ver Contas</Text>
         </Pressable>
@@ -624,6 +629,8 @@ const styles = StyleSheet.create({
   newTransactionButtonText: { color: '#fff', fontWeight: '600' },
   accountsButton: { borderWidth: 1, borderColor: '#1b64d9', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   accountsButtonText: { color: '#1b64d9', fontWeight: '700' },
+  textTransactionButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 12, alignItems: 'center', backgroundColor: '#f5fff7' },
+  textTransactionButtonText: { color: '#116329', fontWeight: '700' },
   exportButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   exportButtonText: { color: '#116329', fontWeight: '700' },
   summaryBox: { borderWidth: 1, borderColor: '#d9d9d9', borderRadius: 12, padding: 12, gap: 4, marginBottom: 12 },

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import type { Transaction } from '../types/transaction';
+import type { TextTransactionDraft } from './TextTransactionScreen';
 
 type TransactionType = 'receita' | 'despesa';
 type TransactionStatus = 'pago' | 'pendente';
@@ -26,6 +27,7 @@ type NewTransactionScreenProps = {
   onBack: () => void;
   onSaved: () => void;
   transactionToEdit?: Transaction;
+  initialDraft?: TextTransactionDraft;
 };
 
 type SupabaseErrorLike = {
@@ -222,6 +224,7 @@ export function NewTransactionScreen({
   onBack,
   onSaved,
   transactionToEdit,
+  initialDraft,
 }: NewTransactionScreenProps) {
   const isEditing = Boolean(transactionToEdit);
   const [type, setType] = useState<TransactionType>('despesa');
@@ -266,6 +269,29 @@ export function NewTransactionScreen({
     setSaveFeedback(null);
   }, [transactionToEdit]);
 
+  useEffect(() => {
+    if (!initialDraft || transactionToEdit) {
+      return;
+    }
+
+    setType(initialDraft.type ?? 'despesa');
+    setDescription(initialDraft.description);
+    setAmountText(initialDraft.amount ? formatAmountForDisplay(initialDraft.amount) : '');
+    setTransactionDate(formatIsoDateToBR(initialDraft.transactionDate) || initialDraft.transactionDate || todayIsoDate());
+    setStatus(initialDraft.status);
+    setDueDate(initialDraft.dueDate ? formatIsoDateToBR(initialDraft.dueDate) || initialDraft.dueDate : '');
+    setSupplierCustomer('');
+    setPaymentMethod(initialDraft.paymentMethod ?? '');
+    setSelectedCategoryId('');
+    setCategorySelectorOpen(false);
+    setFormError(
+      initialDraft.confidenceMessages.length > 0
+        ? 'Revise os campos destacados antes de salvar. Nada foi salvo automaticamente.'
+        : null,
+    );
+    setSaveFeedback('Campos preenchidos pela interpretação local. Revise e confirme para salvar.');
+  }, [initialDraft, transactionToEdit]);
+
   const filteredCategories = useMemo(() => {
     const compatibleCategories = categories.filter((category) => {
       if (!category.type) {
@@ -281,6 +307,19 @@ export function NewTransactionScreen({
   const selectedCategory = useMemo(() => {
     return filteredCategories.find((category) => category.id === selectedCategoryId);
   }, [filteredCategories, selectedCategoryId]);
+
+  useEffect(() => {
+    if (!initialDraft?.suggestedCategoryName || transactionToEdit || selectedCategoryId || filteredCategories.length === 0) {
+      return;
+    }
+
+    const suggestedCategoryKey = normalizeCategoryName(initialDraft.suggestedCategoryName);
+    const matchedCategory = filteredCategories.find((category) => normalizeCategoryName(category.name) === suggestedCategoryKey);
+
+    if (matchedCategory) {
+      setSelectedCategoryId(matchedCategory.id);
+    }
+  }, [filteredCategories, initialDraft?.suggestedCategoryName, selectedCategoryId, transactionToEdit]);
 
   useEffect(() => {
     if (
@@ -500,13 +539,25 @@ export function NewTransactionScreen({
     >
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Controle atual</Text>
-        <Text style={styles.title}>{isEditing ? 'Editar lançamento' : 'Novo lançamento'}</Text>
+        <Text style={styles.title}>{isEditing ? 'Editar lançamento' : initialDraft ? 'Revisar lançamento por texto' : 'Novo lançamento'}</Text>
         <Text style={styles.subtitle}>
           {isEditing
             ? 'Atualize os dados do lançamento selecionado.'
-            : 'Registre uma receita ou despesa manualmente.'}
+            : initialDraft
+              ? 'Confira e ajuste os campos interpretados antes de confirmar. O app só salva depois de tocar em Salvar lançamento.'
+              : 'Registre uma receita ou despesa manualmente.'}
         </Text>
       </View>
+
+      {initialDraft && !isEditing ? (
+        <View style={styles.noticeCard}>
+          <Text style={styles.noticeTitle}>Texto interpretado</Text>
+          <Text style={styles.noticeText}>{initialDraft.originalText}</Text>
+          {initialDraft.suggestedCategoryName ? (
+            <Text style={styles.noticeHint}>Categoria sugerida: {initialDraft.suggestedCategoryName}</Text>
+          ) : null}
+        </View>
+      ) : null}
 
       <View style={styles.card}>
         <Text style={styles.label}>Tipo *</Text>
@@ -734,7 +785,7 @@ export function NewTransactionScreen({
 
         <Pressable style={styles.secondaryButton} onPress={onBack} disabled={saving}>
           <Text style={styles.secondaryButtonText}>
-            {isEditing ? 'Cancelar edição' : 'Voltar para Movimentações'}
+            {isEditing ? 'Cancelar edição' : initialDraft ? 'Voltar para Registrar por texto' : 'Voltar para Movimentações'}
           </Text>
         </Pressable>
       </View>
@@ -769,6 +820,31 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: '#475569',
+  },
+  noticeCard: {
+    backgroundColor: '#eff6ff',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    marginBottom: 16,
+  },
+  noticeTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1d4ed8',
+    marginBottom: 6,
+  },
+  noticeText: {
+    fontSize: 15,
+    lineHeight: 21,
+    color: '#1e3a8a',
+  },
+  noticeHint: {
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1d4ed8',
   },
   card: {
     backgroundColor: '#ffffff',
