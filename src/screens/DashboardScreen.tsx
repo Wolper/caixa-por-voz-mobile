@@ -26,6 +26,7 @@ type Props = {
   onVoiceTransaction: () => void;
   onOpenTransactions: () => void;
   onOpenAccounts: () => void;
+  onOpenMvpChecklist: () => void;
 };
 
 type SupabaseErrorLike = {
@@ -104,6 +105,7 @@ export function DashboardScreen({
   onVoiceTransaction,
   onOpenTransactions,
   onOpenAccounts,
+  onOpenMvpChecklist,
 }: Props) {
   const { signOut } = useAuth();
   const monthRange = useMemo(() => getCurrentLocalMonthRange(), []);
@@ -279,6 +281,9 @@ export function DashboardScreen({
             <Pressable style={styles.shortcutButton} onPress={onOpenAccounts}>
               <Text style={styles.shortcutButtonText}>Ver contas</Text>
             </Pressable>
+            <Pressable style={styles.checklistShortcutButton} onPress={onOpenMvpChecklist}>
+              <Text style={styles.checklistShortcutButtonText}>Checklist do MVP</Text>
+            </Pressable>
           </View>
         </ScrollView>
       )}
@@ -314,6 +319,8 @@ const styles = StyleSheet.create({
   textShortcutButtonText: { color: '#116329', fontWeight: '700' },
   voiceShortcutButton: { borderWidth: 1, borderColor: '#6d28d9', borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#f5f3ff' },
   voiceShortcutButtonText: { color: '#6d28d9', fontWeight: '700' },
+  checklistShortcutButton: { borderWidth: 1, borderColor: '#b45309', borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#fffbeb' },
+  checklistShortcutButtonText: { color: '#92400e', fontWeight: '700' },
   secondaryButton: { borderRadius: 10, borderWidth: 1, borderColor: '#333', paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },
   secondaryButtonText: { color: '#111', fontWeight: '600' },
   logoutButton: { borderRadius: 10, borderWidth: 1, borderColor: '#b00020', paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },
