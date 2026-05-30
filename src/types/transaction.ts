@@ -4,6 +4,7 @@ export type Transaction = {
   id: string;
   company_id?: string | null;
   category_id?: string | null;
+  categoryName?: string | null;
   description?: string | null;
   tipo?: TransactionType | null;
   type?: TransactionType | null;
