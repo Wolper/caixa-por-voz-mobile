@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { PilotBadge } from '../components/PilotBadge';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Control } from '../types/control';
@@ -55,7 +56,8 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
         setSelectedControlId(null);
         await AsyncStorage.removeItem(SELECTED_CONTROL_STORAGE_KEY);
       }
-    } catch {
+    } catch (error) {
+      console.error('Erro ao carregar controles do MVP piloto', error);
       setErrorMessage('Não foi possível carregar seus controles agora. Tente novamente em instantes.');
       setControls([]);
       setSelectedControlId(null);
@@ -100,7 +102,9 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <PilotBadge />
         <Text style={styles.title}>Meus controles</Text>
+        <Text style={styles.subtitle}>Versão de validação: escolha um controle para testar o fluxo principal.</Text>
         <Text style={styles.currentControl}>Controle atual: {currentControlName}</Text>
       </View>
 
@@ -170,6 +174,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
+  },
+  subtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#555',
   },
   currentControl: {
     fontSize: 15,

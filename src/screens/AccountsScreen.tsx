@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PilotBadge } from '../components/PilotBadge';
 import { supabase } from '../lib/supabase';
 import type { Transaction } from '../types/transaction';
 import { formatCurrencyBRL, formatDateBR, toNumber } from '../utils/formatters';
@@ -293,6 +294,7 @@ export function AccountsScreen({ selectedControlId, selectedControlName, onBack,
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <PilotBadge />
         <Text style={styles.title}>Contas</Text>
         <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
       </View>

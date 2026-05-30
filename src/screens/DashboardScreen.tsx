@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PilotBadge } from '../components/PilotBadge';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import type { Transaction } from '../types/transaction';
@@ -200,7 +201,9 @@ export function DashboardScreen({
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <PilotBadge />
         <Text style={styles.title}>Início</Text>
+        <Text style={styles.mvpHint}>Versão de validação para teste piloto.</Text>
         <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
       </View>
 
@@ -233,7 +236,7 @@ export function DashboardScreen({
           {!hasDashboardData ? (
             <View style={styles.emptyBox}>
               <Text style={styles.feedbackText}>Ainda não há movimentações neste mês nem contas pendentes com vencimento informado.</Text>
-              <Text style={styles.feedbackHint}>Use Novo lançamento manual, texto ou voz simulada para registrar a primeira movimentação.</Text>
+              <Text style={styles.feedbackHint}>Use lançamento manual, texto ou voz simulada para registrar a primeira movimentação.</Text>
             </View>
           ) : null}
 
@@ -267,7 +270,7 @@ export function DashboardScreen({
           <View style={styles.shortcutsBox}>
             <Text style={styles.sectionTitle}>Atalhos</Text>
             <Pressable style={styles.primaryButton} onPress={onNewTransaction}>
-              <Text style={styles.primaryButtonText}>Novo lançamento manual</Text>
+              <Text style={styles.primaryButtonText}>Adicionar lançamento manual</Text>
             </Pressable>
             <Pressable style={styles.textShortcutButton} onPress={onTextTransaction}>
               <Text style={styles.textShortcutButtonText}>Registrar por texto</Text>
@@ -296,6 +299,7 @@ const styles = StyleSheet.create({
   header: { gap: 6, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 15, color: '#3b3b3b' },
+  mvpHint: { fontSize: 13, color: '#555' },
   headerActions: { gap: 8, marginBottom: 14 },
   content: { flex: 1 },
   contentContainer: { gap: 16, paddingBottom: 16 },

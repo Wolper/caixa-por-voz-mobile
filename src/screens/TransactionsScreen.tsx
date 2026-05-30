@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PilotBadge } from '../components/PilotBadge';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Category } from '../types/category';
@@ -446,13 +447,14 @@ export function TransactionsScreen({
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <PilotBadge />
         <Text style={styles.title}>Movimentações</Text>
         <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
       </View>
 
       <View style={styles.topActions}>
         <Pressable style={styles.newTransactionButton} onPress={onNewTransaction}>
-          <Text style={styles.newTransactionButtonText}>Novo lançamento manual</Text>
+          <Text style={styles.newTransactionButtonText}>Adicionar lançamento manual</Text>
         </Pressable>
         <Pressable style={styles.textTransactionButton} onPress={onTextTransaction}>
           <Text style={styles.textTransactionButtonText}>Registrar por texto</Text>
@@ -570,7 +572,7 @@ export function TransactionsScreen({
           {hasActiveAppliedFilters ? (
             <Text style={styles.feedbackHint}>Limpe ou ajuste os filtros para ver outras movimentações.</Text>
           ) : (
-            <Text style={styles.feedbackHint}>Use Novo lançamento manual, texto ou voz simulada para começar.</Text>
+            <Text style={styles.feedbackHint}>Use lançamento manual, texto ou voz simulada para começar.</Text>
           )}
         </View>
       ) : (
