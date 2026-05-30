@@ -10,6 +10,7 @@ import { AccountsScreen } from './src/screens/AccountsScreen';
 import { NewTransactionScreen } from './src/screens/NewTransactionScreen';
 import { TextTransactionScreen, type TextTransactionDraft } from './src/screens/TextTransactionScreen';
 import { TransactionsScreen } from './src/screens/TransactionsScreen';
+import { VoiceTransactionScreen } from './src/screens/VoiceTransactionScreen';
 import type { Transaction } from './src/types/transaction';
 
 type SelectedControl = {
@@ -23,8 +24,9 @@ type AppRoute =
   | ({ name: 'transactions' } & SelectedControl)
   | ({ name: 'accounts'; from: 'controls' | 'dashboard' | 'transactions' } & SelectedControl)
   | ({ name: 'text-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
+  | ({ name: 'voice-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
   | ({ name: 'new-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
-  | ({ name: 'review-text-transaction'; from: 'text-transaction'; returnTo: 'dashboard' | 'transactions'; draft: TextTransactionDraft } & SelectedControl)
+  | ({ name: 'review-text-transaction'; from: 'text-transaction' | 'voice-transaction'; returnTo: 'dashboard' | 'transactions'; draft: TextTransactionDraft } & SelectedControl)
   | ({ name: 'edit-transaction'; transaction: Transaction } & SelectedControl);
 
 function AuthScreen() {
@@ -147,7 +149,7 @@ function Root() {
   }
 
   if (route.name === 'new-transaction' || route.name === 'edit-transaction' || route.name === 'review-text-transaction') {
-    const returnRouteName = route.name === 'new-transaction' ? route.from : 'transactions';
+    const returnRouteName = route.name === 'new-transaction' ? route.from : route.name === 'review-text-transaction' ? route.returnTo : 'transactions';
 
     return (
       <NewTransactionScreen
@@ -160,7 +162,7 @@ function Root() {
           setRoute(
             route.name === 'review-text-transaction'
               ? {
-                  name: 'text-transaction',
+                  name: route.from,
                   from: route.returnTo,
                   selectedControlId: route.selectedControlId,
                   selectedControlName: route.selectedControlName,
@@ -210,6 +212,31 @@ function Root() {
     );
   }
 
+  if (route.name === 'voice-transaction') {
+    return (
+      <VoiceTransactionScreen
+        selectedControlName={route.selectedControlName}
+        onBack={() =>
+          setRoute({
+            name: route.from,
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onReview={(draft) =>
+          setRoute({
+            name: 'review-text-transaction',
+            from: 'voice-transaction',
+            returnTo: route.from,
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+            draft,
+          })
+        }
+      />
+    );
+  }
+
   if (route.name === 'dashboard') {
     return (
       <DashboardScreen
@@ -228,6 +255,14 @@ function Root() {
         onTextTransaction={() =>
           setRoute({
             name: 'text-transaction',
+            from: 'dashboard',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onVoiceTransaction={() =>
+          setRoute({
+            name: 'voice-transaction',
             from: 'dashboard',
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
@@ -275,6 +310,14 @@ function Root() {
         onTextTransaction={() =>
           setRoute({
             name: 'text-transaction',
+            from: 'transactions',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onVoiceTransaction={() =>
+          setRoute({
+            name: 'voice-transaction',
             from: 'transactions',
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
