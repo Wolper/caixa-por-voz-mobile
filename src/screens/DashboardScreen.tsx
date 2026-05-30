@@ -23,6 +23,7 @@ type Props = {
   onBackToControls: () => void;
   onNewTransaction: () => void;
   onTextTransaction: () => void;
+  onVoiceTransaction: () => void;
   onOpenTransactions: () => void;
   onOpenAccounts: () => void;
 };
@@ -100,6 +101,7 @@ export function DashboardScreen({
   onBackToControls,
   onNewTransaction,
   onTextTransaction,
+  onVoiceTransaction,
   onOpenTransactions,
   onOpenAccounts,
 }: Props) {
@@ -267,6 +269,9 @@ export function DashboardScreen({
             <Pressable style={styles.textShortcutButton} onPress={onTextTransaction}>
               <Text style={styles.textShortcutButtonText}>Registrar por texto</Text>
             </Pressable>
+            <Pressable style={styles.voiceShortcutButton} onPress={onVoiceTransaction}>
+              <Text style={styles.voiceShortcutButtonText}>Registrar por voz</Text>
+            </Pressable>
             <Pressable style={styles.shortcutButton} onPress={onOpenTransactions}>
               <Text style={styles.shortcutButtonText}>Movimentações</Text>
             </Pressable>
@@ -306,6 +311,8 @@ const styles = StyleSheet.create({
   shortcutButtonText: { color: '#1b64d9', fontWeight: '700' },
   textShortcutButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 13, alignItems: 'center', backgroundColor: '#f5fff7' },
   textShortcutButtonText: { color: '#116329', fontWeight: '700' },
+  voiceShortcutButton: { borderWidth: 1, borderColor: '#6d28d9', borderRadius: 10, paddingVertical: 13, alignItems: 'center', backgroundColor: '#f5f3ff' },
+  voiceShortcutButtonText: { color: '#6d28d9', fontWeight: '700' },
   secondaryButton: { borderRadius: 10, borderWidth: 1, borderColor: '#333', paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },
   secondaryButtonText: { color: '#111', fontWeight: '600' },
   logoutButton: { borderRadius: 10, borderWidth: 1, borderColor: '#b00020', paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },

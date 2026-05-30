@@ -227,6 +227,7 @@ export function NewTransactionScreen({
   initialDraft,
 }: NewTransactionScreenProps) {
   const isEditing = Boolean(transactionToEdit);
+  const draftSourceLabel = initialDraft?.sourceMode === 'voice' ? 'voz' : 'texto';
   const [type, setType] = useState<TransactionType>('despesa');
   const [description, setDescription] = useState('');
   const [amountText, setAmountText] = useState('');
@@ -539,7 +540,7 @@ export function NewTransactionScreen({
     >
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Controle atual</Text>
-        <Text style={styles.title}>{isEditing ? 'Editar lançamento' : initialDraft ? 'Revisar lançamento por texto' : 'Novo lançamento'}</Text>
+        <Text style={styles.title}>{isEditing ? 'Editar lançamento' : initialDraft ? `Revisar lançamento por ${draftSourceLabel}` : 'Novo lançamento'}</Text>
         <Text style={styles.subtitle}>
           {isEditing
             ? 'Atualize os dados do lançamento selecionado.'
@@ -551,7 +552,7 @@ export function NewTransactionScreen({
 
       {initialDraft && !isEditing ? (
         <View style={styles.noticeCard}>
-          <Text style={styles.noticeTitle}>Texto interpretado</Text>
+          <Text style={styles.noticeTitle}>{initialDraft.sourceMode === 'voice' ? 'Texto transcrito interpretado' : 'Texto interpretado'}</Text>
           <Text style={styles.noticeText}>{initialDraft.originalText}</Text>
           {initialDraft.suggestedCategoryName ? (
             <Text style={styles.noticeHint}>Categoria sugerida: {initialDraft.suggestedCategoryName}</Text>
@@ -785,7 +786,7 @@ export function NewTransactionScreen({
 
         <Pressable style={styles.secondaryButton} onPress={onBack} disabled={saving}>
           <Text style={styles.secondaryButtonText}>
-            {isEditing ? 'Cancelar edição' : initialDraft ? 'Voltar para Registrar por texto' : 'Voltar para Movimentações'}
+            {isEditing ? 'Cancelar edição' : initialDraft ? `Voltar para Registrar por ${draftSourceLabel}` : 'Voltar para Movimentações'}
           </Text>
         </Pressable>
       </View>

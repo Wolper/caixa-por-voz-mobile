@@ -4,14 +4,18 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { formatCurrencyBRL, formatDateBR } from '../utils/formatters';
 import { parseTextTransaction, type ParsedTextTransaction } from '../utils/textTransactionParser';
 
+export type TextTransactionMode = 'text' | 'voice';
+
 export type TextTransactionDraft = ParsedTextTransaction & {
   originalText: string;
+  sourceMode?: TextTransactionMode;
 };
 
 type Props = {
   selectedControlName: string;
   onBack: () => void;
   onReview: (draft: TextTransactionDraft) => void;
+  mode?: TextTransactionMode;
 };
 
 const examplePhrases = [
@@ -20,7 +24,34 @@ const examplePhrases = [
   'Conta de energia 220 vencendo dia 10',
 ];
 
-export function TextTransactionScreen({ selectedControlName, onBack, onReview }: Props) {
+const screenCopyByMode: Record<TextTransactionMode, {
+  title: string;
+  subtitle: string;
+  infoTitle?: string;
+  infoText?: string;
+  inputLabel: string;
+  ctaLabel: string;
+  emptyMessage: string;
+}> = {
+  text: {
+    title: 'Registrar por texto',
+    subtitle: 'Digite uma frase livre. A interpretação é local e simples, sem chamada para IA externa.',
+    inputLabel: 'Frase do lançamento',
+    ctaLabel: 'Revisar campos interpretados',
+    emptyMessage: 'Digite uma frase para eu interpretar o lançamento.',
+  },
+  voice: {
+    title: 'Registrar por voz',
+    subtitle: 'Este é um fluxo visual para validar a jornada por voz. A gravação real será integrada depois.',
+    infoTitle: 'Voz real ainda não está ativa',
+    infoText: 'Neste MVP não gravamos áudio, não pedimos microfone e não enviamos áudio para transcrição. Use o campo abaixo para digitar ou colar a frase como se ela já tivesse sido transcrita.',
+    inputLabel: 'Texto transcrito da fala',
+    ctaLabel: 'Usar texto transcrito',
+    emptyMessage: 'Digite ou cole a transcrição simulada para eu interpretar o lançamento.',
+  },
+};
+
+export function TextTransactionScreen({ selectedControlName, onBack, onReview, mode = 'text' }: Props) {
   const [phrase, setPhrase] = useState('');
   const [message, setMessage] = useState<string | null>(null);
 
@@ -36,26 +67,37 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview }:
     const trimmedPhrase = phrase.trim();
 
     if (!trimmedPhrase || !parsed) {
-      setMessage('Digite uma frase para eu interpretar o lançamento.');
+      setMessage(copy.emptyMessage);
       return;
     }
 
     setMessage(null);
-    onReview({ ...parsed, originalText: trimmedPhrase });
+    onReview({ ...parsed, originalText: trimmedPhrase, sourceMode: mode });
   }
+
+  const copy = screenCopyByMode[mode];
+  const isVoiceMode = mode === 'voice';
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Controle atual: {selectedControlName}</Text>
-        <Text style={styles.title}>Registrar por texto</Text>
-        <Text style={styles.subtitle}>
-          Digite uma frase livre. A interpretação é local e simples, sem chamada para IA externa.
-        </Text>
+        <Text style={styles.title}>{copy.title}</Text>
+        <Text style={styles.subtitle}>{copy.subtitle}</Text>
       </View>
 
+      {isVoiceMode ? (
+        <View style={[styles.card, styles.voiceInfoCard]}>
+          <Text style={styles.sectionTitle}>{copy.infoTitle}</Text>
+          <Text style={styles.helperText}>{copy.infoText}</Text>
+          <View style={styles.simulatedVoiceButton}>
+            <Text style={styles.simulatedVoiceButtonText}>Simular fala</Text>
+          </View>
+        </View>
+      ) : null}
+
       <View style={styles.card}>
-        <Text style={styles.label}>Frase do lançamento</Text>
+        <Text style={styles.label}>{copy.inputLabel}</Text>
         <TextInput
           style={[styles.input, styles.multilineInput]}
           placeholder="Ex.: Comprei frango por 380 reais no Pix hoje"
@@ -79,7 +121,7 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview }:
       {parsed ? (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Prévia interpretada</Text>
-          <Text style={styles.helperText}>Confira a prévia. Nada será salvo sem você revisar e confirmar no formulário.</Text>
+          <Text style={styles.helperText}>Confira a prévia. Nada será salvo sem você revisar, editar se necessário e confirmar no formulário.</Text>
 
           {parsed.confidenceMessages.length > 0 ? (
             <View style={styles.warningBox}>
@@ -105,7 +147,7 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview }:
       {message ? <Text style={styles.errorText}>{message}</Text> : null}
 
       <Pressable style={styles.primaryButton} onPress={handleReview}>
-        <Text style={styles.primaryButtonText}>Revisar campos interpretados</Text>
+        <Text style={styles.primaryButtonText}>{copy.ctaLabel}</Text>
       </Pressable>
 
       <Pressable style={styles.secondaryButton} onPress={onBack}>
@@ -136,6 +178,9 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     gap: 10,
   },
+  voiceInfoCard: { borderColor: '#c4b5fd', backgroundColor: '#f5f3ff' },
+  simulatedVoiceButton: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#6d28d9' },
+  simulatedVoiceButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
   label: { fontSize: 14, fontWeight: '700', color: '#334155' },
   input: {
     borderWidth: 1,
