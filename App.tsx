@@ -8,6 +8,7 @@ import { ControlsScreen } from './src/screens/ControlsScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { AccountsScreen } from './src/screens/AccountsScreen';
 import { NewTransactionScreen } from './src/screens/NewTransactionScreen';
+import { MvpChecklistScreen } from './src/screens/MvpChecklistScreen';
 import { TextTransactionScreen, type TextTransactionDraft } from './src/screens/TextTransactionScreen';
 import { TransactionsScreen } from './src/screens/TransactionsScreen';
 import { VoiceTransactionScreen } from './src/screens/VoiceTransactionScreen';
@@ -22,6 +23,7 @@ type AppRoute =
   | { name: 'controls' }
   | ({ name: 'dashboard' } & SelectedControl)
   | ({ name: 'transactions' } & SelectedControl)
+  | ({ name: 'mvp-checklist' } & SelectedControl)
   | ({ name: 'accounts'; from: 'controls' | 'dashboard' | 'transactions' } & SelectedControl)
   | ({ name: 'text-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
   | ({ name: 'voice-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
@@ -282,6 +284,28 @@ function Root() {
           setRoute({
             name: 'accounts',
             from: 'dashboard',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onOpenMvpChecklist={() =>
+          setRoute({
+            name: 'mvp-checklist',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+      />
+    );
+  }
+
+  if (route.name === 'mvp-checklist') {
+    return (
+      <MvpChecklistScreen
+        selectedControlName={route.selectedControlName}
+        onBackToDashboard={() =>
+          setRoute({
+            name: 'dashboard',
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
           })
