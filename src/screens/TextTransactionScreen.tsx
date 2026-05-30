@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { PilotBadge } from '../components/PilotBadge';
 import { formatCurrencyBRL, formatDateBR } from '../utils/formatters';
 import { parseTextTransaction, type ParsedTextTransaction } from '../utils/textTransactionParser';
 
@@ -37,7 +38,7 @@ const screenCopyByMode: Record<TextTransactionMode, {
 }> = {
   text: {
     title: 'Registrar por texto',
-    subtitle: 'Digite uma frase livre. A interpretação é local e simples, sem chamada para IA externa.',
+    subtitle: 'Digite uma frase livre. Neste MVP de teste, a interpretação é local e simples, sem chamada para IA externa.',
     reviewHint: 'Depois da prévia, revise valor, tipo, data e categoria antes de salvar.',
     inputLabel: 'Frase do lançamento',
     ctaLabel: 'Revisar campos interpretados',
@@ -45,12 +46,12 @@ const screenCopyByMode: Record<TextTransactionMode, {
   },
   voice: {
     title: 'Registrar por voz',
-    subtitle: 'Este é um fluxo visual para validar a jornada por voz. A gravação real será integrada depois.',
+    subtitle: 'Este é um fluxo visual do MVP para validar a jornada por voz. A gravação real será integrada depois.',
     reviewHint: 'A voz real ainda será integrada depois. Por enquanto, digite a transcrição simulada e revise tudo antes de salvar.',
     infoTitle: 'Voz real ainda não está ativa',
     infoText: 'Neste MVP não gravamos áudio, não pedimos microfone e não enviamos áudio para transcrição. Use o campo abaixo para digitar ou colar a frase como se ela já tivesse sido transcrita.',
     inputLabel: 'Texto transcrito da fala',
-    ctaLabel: 'Usar texto transcrito',
+    ctaLabel: 'Revisar texto transcrito',
     emptyMessage: 'Digite ou cole a transcrição simulada para eu interpretar o lançamento.',
   },
 };
@@ -90,6 +91,7 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview, m
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
+        <PilotBadge />
         <Text style={styles.eyebrow}>Controle atual: {selectedControlName}</Text>
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.subtitle}>{copy.subtitle}</Text>

@@ -8,6 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { PilotBadge } from '../components/PilotBadge';
 import { supabase } from '../lib/supabase';
 import type { Transaction } from '../types/transaction';
 import type { TextTransactionDraft } from './TextTransactionScreen';
@@ -541,6 +542,7 @@ export function NewTransactionScreen({
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.header}>
+        <PilotBadge />
         <Text style={styles.eyebrow}>Controle atual</Text>
         <Text style={styles.title}>{isEditing ? 'Editar lançamento' : initialDraft ? `Revisar lançamento por ${draftSourceLabel}` : 'Novo lançamento'}</Text>
         <Text style={styles.subtitle}>
@@ -548,7 +550,7 @@ export function NewTransactionScreen({
             ? 'Atualize os dados do lançamento selecionado.'
             : initialDraft
               ? 'Confira valor, tipo, data e categoria antes de confirmar. Nada é salvo automaticamente.'
-              : 'Registre uma receita ou despesa manualmente.'}
+              : 'Registre uma receita ou despesa manualmente nesta versão de validação.'}
         </Text>
       </View>
 
@@ -781,7 +783,7 @@ export function NewTransactionScreen({
             <ActivityIndicator color="#ffffff" />
           ) : (
             <Text style={styles.primaryButtonText}>
-              {isEditing ? 'Salvar edição' : 'Salvar lançamento'}
+              {isEditing ? 'Salvar edição' : 'Salvar lançamento no MVP'}
             </Text>
           )}
         </Pressable>

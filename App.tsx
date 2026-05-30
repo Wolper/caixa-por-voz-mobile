@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+import { PilotBadge } from './src/components/PilotBadge';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { ControlsScreen } from './src/screens/ControlsScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
@@ -55,8 +56,9 @@ function AuthScreen() {
         await signUp(email.trim(), password);
         setMessage('Conta criada! Verifique seu e-mail para confirmar o cadastro, se necessário.');
       }
-    } catch {
-      setMessage(mode === 'login' ? 'Não foi possível entrar. Verifique e-mail e senha.' : 'Não foi possível criar sua conta agora. Tente novamente.');
+    } catch (error) {
+      console.error('Erro de autenticação no MVP piloto', error);
+      setMessage(mode === 'login' ? 'Não foi possível entrar agora. Confira e-mail e senha e tente novamente.' : 'Não foi possível criar sua conta agora. Tente novamente em instantes.');
     } finally {
       setSubmitting(false);
     }
@@ -64,7 +66,9 @@ function AuthScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <PilotBadge />
       <Text style={styles.title}>{mode === 'login' ? 'Entrar' : 'Criar conta'}</Text>
+      <Text style={styles.subtitle}>Versão de validação para teste piloto. Use com dados reais apenas quando combinado com a equipe.</Text>
 
       <TextInput
         style={styles.input}
@@ -80,7 +84,7 @@ function AuthScreen() {
       {message ? <Text style={styles.message}>{message}</Text> : null}
 
       <Pressable style={styles.button} onPress={handleSubmit} disabled={submitting}>
-        <Text style={styles.buttonText}>{submitting ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Criar conta'}</Text>
+        <Text style={styles.buttonText}>{submitting ? 'Aguarde...' : mode === 'login' ? 'Entrar no MVP' : 'Criar conta para teste'}</Text>
       </Pressable>
 
       <Pressable

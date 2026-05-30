@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PilotBadge } from '../components/PilotBadge';
+
 const checklistItems = [
   'Criar lançamento manual',
   'Registrar por texto',
@@ -107,6 +109,7 @@ export function MvpChecklistScreen({
         keyboardShouldPersistTaps='handled'
       >
         <View style={styles.header}>
+          <PilotBadge />
           <Text style={styles.title}>Checklist do MVP</Text>
           <Text style={styles.subtitle}>
             Use este roteiro com o usuário piloto para validar o fluxo principal
