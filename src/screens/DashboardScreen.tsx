@@ -215,6 +215,7 @@ export function DashboardScreen({
         <View style={styles.centeredContent}>
           <ActivityIndicator size="large" />
           <Text style={styles.feedbackText}>Carregando resumo do controle...</Text>
+          <Text style={styles.feedbackHint}>Buscando receitas, despesas e contas pendentes.</Text>
         </View>
       ) : errorMessage ? (
         <View style={styles.centeredContent}>
@@ -229,8 +230,8 @@ export function DashboardScreen({
 
           {!hasDashboardData ? (
             <View style={styles.emptyBox}>
-              <Text style={styles.feedbackText}>Ainda não há lançamentos neste mês nem contas pendentes com vencimento informado.</Text>
-              <Text style={styles.feedbackHint}>Use o atalho abaixo para registrar o primeiro lançamento do controle.</Text>
+              <Text style={styles.feedbackText}>Ainda não há movimentações neste mês nem contas pendentes com vencimento informado.</Text>
+              <Text style={styles.feedbackHint}>Use Novo lançamento manual, texto ou voz simulada para registrar a primeira movimentação.</Text>
             </View>
           ) : null}
 
@@ -264,19 +265,19 @@ export function DashboardScreen({
           <View style={styles.shortcutsBox}>
             <Text style={styles.sectionTitle}>Atalhos</Text>
             <Pressable style={styles.primaryButton} onPress={onNewTransaction}>
-              <Text style={styles.primaryButtonText}>Novo lançamento</Text>
+              <Text style={styles.primaryButtonText}>Novo lançamento manual</Text>
             </Pressable>
             <Pressable style={styles.textShortcutButton} onPress={onTextTransaction}>
               <Text style={styles.textShortcutButtonText}>Registrar por texto</Text>
             </Pressable>
             <Pressable style={styles.voiceShortcutButton} onPress={onVoiceTransaction}>
-              <Text style={styles.voiceShortcutButtonText}>Registrar por voz</Text>
+              <Text style={styles.voiceShortcutButtonText}>Registrar por voz (simulado)</Text>
             </Pressable>
             <Pressable style={styles.shortcutButton} onPress={onOpenTransactions}>
-              <Text style={styles.shortcutButtonText}>Movimentações</Text>
+              <Text style={styles.shortcutButtonText}>Ver movimentações</Text>
             </Pressable>
             <Pressable style={styles.shortcutButton} onPress={onOpenAccounts}>
-              <Text style={styles.shortcutButtonText}>Contas</Text>
+              <Text style={styles.shortcutButtonText}>Ver contas</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -305,13 +306,13 @@ const styles = StyleSheet.create({
   positiveValue: { color: '#116329' },
   negativeValue: { color: '#b00020' },
   shortcutsBox: { gap: 10, marginTop: 4 },
-  primaryButton: { backgroundColor: '#111', borderRadius: 10, paddingVertical: 13, alignItems: 'center' },
+  primaryButton: { backgroundColor: '#111', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
   primaryButtonText: { color: '#fff', fontWeight: '700' },
-  shortcutButton: { borderWidth: 1, borderColor: '#1b64d9', borderRadius: 10, paddingVertical: 13, alignItems: 'center' },
+  shortcutButton: { borderWidth: 1, borderColor: '#1b64d9', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
   shortcutButtonText: { color: '#1b64d9', fontWeight: '700' },
-  textShortcutButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 13, alignItems: 'center', backgroundColor: '#f5fff7' },
+  textShortcutButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#f5fff7' },
   textShortcutButtonText: { color: '#116329', fontWeight: '700' },
-  voiceShortcutButton: { borderWidth: 1, borderColor: '#6d28d9', borderRadius: 10, paddingVertical: 13, alignItems: 'center', backgroundColor: '#f5f3ff' },
+  voiceShortcutButton: { borderWidth: 1, borderColor: '#6d28d9', borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#f5f3ff' },
   voiceShortcutButtonText: { color: '#6d28d9', fontWeight: '700' },
   secondaryButton: { borderRadius: 10, borderWidth: 1, borderColor: '#333', paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },
   secondaryButtonText: { color: '#111', fontWeight: '600' },

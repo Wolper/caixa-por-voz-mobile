@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { formatCurrencyBRL, formatDateBR } from '../utils/formatters';
 import { parseTextTransaction, type ParsedTextTransaction } from '../utils/textTransactionParser';
@@ -16,6 +16,7 @@ type Props = {
   onBack: () => void;
   onReview: (draft: TextTransactionDraft) => void;
   mode?: TextTransactionMode;
+  backLabel?: string;
 };
 
 const examplePhrases = [
@@ -27,6 +28,7 @@ const examplePhrases = [
 const screenCopyByMode: Record<TextTransactionMode, {
   title: string;
   subtitle: string;
+  reviewHint: string;
   infoTitle?: string;
   infoText?: string;
   inputLabel: string;
@@ -36,6 +38,7 @@ const screenCopyByMode: Record<TextTransactionMode, {
   text: {
     title: 'Registrar por texto',
     subtitle: 'Digite uma frase livre. A interpretação é local e simples, sem chamada para IA externa.',
+    reviewHint: 'Depois da prévia, revise valor, tipo, data e categoria antes de salvar.',
     inputLabel: 'Frase do lançamento',
     ctaLabel: 'Revisar campos interpretados',
     emptyMessage: 'Digite uma frase para eu interpretar o lançamento.',
@@ -43,6 +46,7 @@ const screenCopyByMode: Record<TextTransactionMode, {
   voice: {
     title: 'Registrar por voz',
     subtitle: 'Este é um fluxo visual para validar a jornada por voz. A gravação real será integrada depois.',
+    reviewHint: 'A voz real ainda será integrada depois. Por enquanto, digite a transcrição simulada e revise tudo antes de salvar.',
     infoTitle: 'Voz real ainda não está ativa',
     infoText: 'Neste MVP não gravamos áudio, não pedimos microfone e não enviamos áudio para transcrição. Use o campo abaixo para digitar ou colar a frase como se ela já tivesse sido transcrita.',
     inputLabel: 'Texto transcrito da fala',
@@ -51,8 +55,9 @@ const screenCopyByMode: Record<TextTransactionMode, {
   },
 };
 
-export function TextTransactionScreen({ selectedControlName, onBack, onReview, mode = 'text' }: Props) {
+export function TextTransactionScreen({ selectedControlName, onBack, onReview, mode = 'text', backLabel = 'Voltar' }: Props) {
   const [phrase, setPhrase] = useState('');
+  const [interpreting, setInterpreting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const parsed = useMemo(() => {
@@ -72,7 +77,11 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview, m
     }
 
     setMessage(null);
-    onReview({ ...parsed, originalText: trimmedPhrase, sourceMode: mode });
+    setInterpreting(true);
+
+    setTimeout(() => {
+      onReview({ ...parsed, originalText: trimmedPhrase, sourceMode: mode });
+    }, 250);
   }
 
   const copy = screenCopyByMode[mode];
@@ -84,6 +93,7 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview, m
         <Text style={styles.eyebrow}>Controle atual: {selectedControlName}</Text>
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.subtitle}>{copy.subtitle}</Text>
+        <Text style={styles.reviewHint}>{copy.reviewHint}</Text>
       </View>
 
       {isVoiceMode ? (
@@ -146,12 +156,19 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview, m
 
       {message ? <Text style={styles.errorText}>{message}</Text> : null}
 
-      <Pressable style={styles.primaryButton} onPress={handleReview}>
-        <Text style={styles.primaryButtonText}>{copy.ctaLabel}</Text>
+      <Pressable style={[styles.primaryButton, interpreting ? styles.disabledButton : null]} onPress={handleReview} disabled={interpreting}>
+        {interpreting ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator color="#ffffff" />
+            <Text style={styles.primaryButtonText}>Interpretando para revisão...</Text>
+          </View>
+        ) : (
+          <Text style={styles.primaryButtonText}>{copy.ctaLabel}</Text>
+        )}
       </Pressable>
 
-      <Pressable style={styles.secondaryButton} onPress={onBack}>
-        <Text style={styles.secondaryButtonText}>Voltar</Text>
+      <Pressable style={styles.secondaryButton} onPress={onBack} disabled={interpreting}>
+        <Text style={styles.secondaryButtonText}>{backLabel}</Text>
       </Pressable>
     </ScrollView>
   );
@@ -170,6 +187,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 13, fontWeight: '700', color: '#2563eb' },
   title: { fontSize: 28, fontWeight: '800', color: '#0f172a' },
   subtitle: { fontSize: 15, lineHeight: 22, color: '#475569' },
+  reviewHint: { fontSize: 14, lineHeight: 20, color: '#334155', fontWeight: '700' },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 18,
@@ -204,7 +222,9 @@ const styles = StyleSheet.create({
   previewItem: { fontSize: 15, lineHeight: 21, color: '#334155' },
   errorText: { textAlign: 'center', color: '#b00020', fontSize: 15 },
   primaryButton: { minHeight: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#111' },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   secondaryButton: { minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#ffffff' },
   secondaryButtonText: { color: '#334155', fontSize: 15, fontWeight: '700' },
+  disabledButton: { opacity: 0.7 },
 });

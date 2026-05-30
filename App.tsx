@@ -158,6 +158,7 @@ function Root() {
           route.name === 'edit-transaction' ? route.transaction : undefined
         }
         initialDraft={route.name === 'review-text-transaction' ? route.draft : undefined}
+        backLabel={route.name === 'new-transaction' && route.from === 'dashboard' ? 'Voltar para Início' : 'Voltar para Movimentações'}
         onBack={() =>
           setRoute(
             route.name === 'review-text-transaction'
@@ -191,6 +192,7 @@ function Root() {
     return (
       <TextTransactionScreen
         selectedControlName={route.selectedControlName}
+        backLabel={route.from === 'dashboard' ? 'Voltar para Início' : 'Voltar para Movimentações'}
         onBack={() =>
           setRoute({
             name: route.from,
@@ -216,6 +218,7 @@ function Root() {
     return (
       <VoiceTransactionScreen
         selectedControlName={route.selectedControlName}
+        backLabel={route.from === 'dashboard' ? 'Voltar para Início' : 'Voltar para Movimentações'}
         onBack={() =>
           setRoute({
             name: route.from,

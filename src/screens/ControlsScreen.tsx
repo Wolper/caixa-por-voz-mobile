@@ -144,7 +144,7 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
           </Pressable>
 
           <Pressable style={[styles.accountsButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenAccounts}>
-            <Text style={styles.accountsButtonText}>Ver Contas</Text>
+            <Text style={styles.accountsButtonText}>Ver contas</Text>
           </Pressable>
         </View>
       )}

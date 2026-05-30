@@ -310,6 +310,7 @@ export function AccountsScreen({ selectedControlId, selectedControlName, onBack,
         <View style={styles.centeredContent}>
           <ActivityIndicator size="large" />
           <Text style={styles.feedbackText}>Carregando contas pendentes...</Text>
+          <Text style={styles.feedbackHint}>Conferindo vencimentos a pagar e a receber.</Text>
         </View>
       ) : errorMessage ? (
         <View style={styles.centeredContent}>
@@ -321,17 +322,18 @@ export function AccountsScreen({ selectedControlId, selectedControlName, onBack,
       ) : !hasPendingAccounts ? (
         <View style={styles.centeredContent}>
           <Text style={styles.feedbackText}>Tudo certo por aqui! Não há contas pendentes com vencimento informado.</Text>
+          <Text style={styles.feedbackHint}>Quando um lançamento ficar pendente e tiver vencimento, ele aparecerá nesta tela.</Text>
         </View>
       ) : (
         <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Contas a pagar</Text>
-            {accountsPayable.length > 0 ? accountsPayable.map(renderAccountCard) : <Text style={styles.emptySectionText}>Nenhuma despesa pendente.</Text>}
+            {accountsPayable.length > 0 ? accountsPayable.map(renderAccountCard) : <Text style={styles.emptySectionText}>Nenhuma conta a pagar pendente.</Text>}
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Contas a receber</Text>
-            {accountsReceivable.length > 0 ? accountsReceivable.map(renderAccountCard) : <Text style={styles.emptySectionText}>Nenhuma receita pendente.</Text>}
+            {accountsReceivable.length > 0 ? accountsReceivable.map(renderAccountCard) : <Text style={styles.emptySectionText}>Nenhuma conta a receber pendente.</Text>}
           </View>
         </ScrollView>
       )}
@@ -355,6 +357,7 @@ const styles = StyleSheet.create({
   summaryBalance: { fontSize: 16, fontWeight: '700', color: '#111' },
   centeredContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
   feedbackText: { textAlign: 'center', color: '#444', fontSize: 16 },
+  feedbackHint: { textAlign: 'center', color: '#666', fontSize: 14 },
   errorText: { textAlign: 'center', color: '#b00020', fontSize: 16 },
   successText: { textAlign: 'center', color: '#116329', fontSize: 15, marginBottom: 12 },
   listContainer: { flex: 1 },

@@ -28,6 +28,7 @@ type NewTransactionScreenProps = {
   onSaved: () => void;
   transactionToEdit?: Transaction;
   initialDraft?: TextTransactionDraft;
+  backLabel?: string;
 };
 
 type SupabaseErrorLike = {
@@ -225,6 +226,7 @@ export function NewTransactionScreen({
   onSaved,
   transactionToEdit,
   initialDraft,
+  backLabel = 'Voltar para Movimentações',
 }: NewTransactionScreenProps) {
   const isEditing = Boolean(transactionToEdit);
   const draftSourceLabel = initialDraft?.sourceMode === 'voice' ? 'voz' : 'texto';
@@ -290,7 +292,7 @@ export function NewTransactionScreen({
         ? 'Revise os campos destacados antes de salvar. Nada foi salvo automaticamente.'
         : null,
     );
-    setSaveFeedback('Campos preenchidos pela interpretação local. Revise e confirme para salvar.');
+    setSaveFeedback('Campos preenchidos pela interpretação local. Revise todos os campos e toque em Salvar lançamento para confirmar.');
   }, [initialDraft, transactionToEdit]);
 
   const filteredCategories = useMemo(() => {
@@ -545,7 +547,7 @@ export function NewTransactionScreen({
           {isEditing
             ? 'Atualize os dados do lançamento selecionado.'
             : initialDraft
-              ? 'Confira e ajuste os campos interpretados antes de confirmar. O app só salva depois de tocar em Salvar lançamento.'
+              ? 'Confira valor, tipo, data e categoria antes de confirmar. Nada é salvo automaticamente.'
               : 'Registre uma receita ou despesa manualmente.'}
         </Text>
       </View>
@@ -786,7 +788,7 @@ export function NewTransactionScreen({
 
         <Pressable style={styles.secondaryButton} onPress={onBack} disabled={saving}>
           <Text style={styles.secondaryButtonText}>
-            {isEditing ? 'Cancelar edição' : initialDraft ? `Voltar para Registrar por ${draftSourceLabel}` : 'Voltar para Movimentações'}
+            {isEditing ? 'Cancelar edição' : initialDraft ? `Voltar para Registrar por ${draftSourceLabel}` : backLabel}
           </Text>
         </Pressable>
       </View>
