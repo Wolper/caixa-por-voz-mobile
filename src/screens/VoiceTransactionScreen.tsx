@@ -4,6 +4,7 @@ type Props = {
   selectedControlName: string;
   onBack: () => void;
   onReview: (draft: TextTransactionDraft) => void;
+  backLabel?: string;
 };
 
 export function VoiceTransactionScreen(props: Props) {

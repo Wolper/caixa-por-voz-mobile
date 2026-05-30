@@ -452,16 +452,16 @@ export function TransactionsScreen({
 
       <View style={styles.topActions}>
         <Pressable style={styles.newTransactionButton} onPress={onNewTransaction}>
-          <Text style={styles.newTransactionButtonText}>Novo lançamento</Text>
+          <Text style={styles.newTransactionButtonText}>Novo lançamento manual</Text>
         </Pressable>
         <Pressable style={styles.textTransactionButton} onPress={onTextTransaction}>
           <Text style={styles.textTransactionButtonText}>Registrar por texto</Text>
         </Pressable>
         <Pressable style={styles.voiceTransactionButton} onPress={onVoiceTransaction}>
-          <Text style={styles.voiceTransactionButtonText}>Registrar por voz</Text>
+          <Text style={styles.voiceTransactionButtonText}>Registrar por voz (simulado)</Text>
         </Pressable>
         <Pressable style={styles.accountsButton} onPress={onOpenAccounts}>
-          <Text style={styles.accountsButtonText}>Ver Contas</Text>
+          <Text style={styles.accountsButtonText}>Ver contas</Text>
         </Pressable>
         <Pressable
           style={[styles.exportButton, exportingCsv || loading ? styles.disabledButton : null]}
@@ -551,6 +551,7 @@ export function TransactionsScreen({
         <View style={styles.centeredContent}>
           <ActivityIndicator size="large" />
           <Text style={styles.feedbackText}>Carregando movimentações...</Text>
+          <Text style={styles.feedbackHint}>Atualizando lista, resumo e filtros aplicados.</Text>
         </View>
       ) : errorMessage ? (
         <View style={styles.centeredContent}>
@@ -563,12 +564,14 @@ export function TransactionsScreen({
         <View style={styles.centeredContent}>
           <Text style={styles.feedbackText}>
             {hasActiveAppliedFilters
-              ? 'Nenhum lançamento encontrado com os filtros informados.'
-              : 'Nenhuma movimentação encontrada para este controle.'}
+              ? 'Nenhuma movimentação encontrada com os filtros informados.'
+              : 'Ainda não há movimentações para este controle.'}
           </Text>
           {hasActiveAppliedFilters ? (
-            <Text style={styles.feedbackHint}>Limpe ou ajuste os filtros para ver outros lançamentos.</Text>
-          ) : null}
+            <Text style={styles.feedbackHint}>Limpe ou ajuste os filtros para ver outras movimentações.</Text>
+          ) : (
+            <Text style={styles.feedbackHint}>Use Novo lançamento manual, texto ou voz simulada para começar.</Text>
+          )}
         </View>
       ) : (
         <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
@@ -631,7 +634,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, color: '#3b3b3b' },
   topActions: { gap: 8, marginBottom: 12 },
   newTransactionButton: { backgroundColor: '#111', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  newTransactionButtonText: { color: '#fff', fontWeight: '600' },
+  newTransactionButtonText: { color: '#fff', fontWeight: '700' },
   accountsButton: { borderWidth: 1, borderColor: '#1b64d9', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   accountsButtonText: { color: '#1b64d9', fontWeight: '700' },
   textTransactionButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 12, alignItems: 'center', backgroundColor: '#f5fff7' },
@@ -673,8 +676,8 @@ const styles = StyleSheet.create({
   transactionActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   editButton: { borderRadius: 8, borderWidth: 1, borderColor: '#1b64d9', paddingHorizontal: 12, paddingVertical: 8 },
   editButtonText: { color: '#1b64d9', fontWeight: '700' },
-  deleteButton: { borderRadius: 8, borderWidth: 1, borderColor: '#b00020', paddingHorizontal: 12, paddingVertical: 8 },
-  deleteButtonText: { color: '#b00020', fontWeight: '700' },
+  deleteButton: { borderRadius: 8, borderWidth: 1, borderColor: '#b00020', backgroundColor: '#fff5f5', paddingHorizontal: 12, paddingVertical: 8 },
+  deleteButtonText: { color: '#b00020', fontWeight: '800' },
   disabledButton: { opacity: 0.6 },
   footerButtons: { gap: 10, marginTop: 10 },
   secondaryButton: { borderRadius: 10, borderWidth: 1, borderColor: '#333', paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },
