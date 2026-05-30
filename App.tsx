@@ -8,6 +8,7 @@ import { ControlsScreen } from './src/screens/ControlsScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { AccountsScreen } from './src/screens/AccountsScreen';
 import { NewTransactionScreen } from './src/screens/NewTransactionScreen';
+import { TextTransactionScreen, type TextTransactionDraft } from './src/screens/TextTransactionScreen';
 import { TransactionsScreen } from './src/screens/TransactionsScreen';
 import type { Transaction } from './src/types/transaction';
 
@@ -21,7 +22,9 @@ type AppRoute =
   | ({ name: 'dashboard' } & SelectedControl)
   | ({ name: 'transactions' } & SelectedControl)
   | ({ name: 'accounts'; from: 'controls' | 'dashboard' | 'transactions' } & SelectedControl)
+  | ({ name: 'text-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
   | ({ name: 'new-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
+  | ({ name: 'review-text-transaction'; from: 'text-transaction'; returnTo: 'dashboard' | 'transactions'; draft: TextTransactionDraft } & SelectedControl)
   | ({ name: 'edit-transaction'; transaction: Transaction } & SelectedControl);
 
 function AuthScreen() {
@@ -143,7 +146,7 @@ function Root() {
     );
   }
 
-  if (route.name === 'new-transaction' || route.name === 'edit-transaction') {
+  if (route.name === 'new-transaction' || route.name === 'edit-transaction' || route.name === 'review-text-transaction') {
     const returnRouteName = route.name === 'new-transaction' ? route.from : 'transactions';
 
     return (
@@ -152,12 +155,22 @@ function Root() {
         transactionToEdit={
           route.name === 'edit-transaction' ? route.transaction : undefined
         }
+        initialDraft={route.name === 'review-text-transaction' ? route.draft : undefined}
         onBack={() =>
-          setRoute({
-            name: returnRouteName,
-            selectedControlId: route.selectedControlId,
-            selectedControlName: route.selectedControlName,
-          })
+          setRoute(
+            route.name === 'review-text-transaction'
+              ? {
+                  name: 'text-transaction',
+                  from: route.returnTo,
+                  selectedControlId: route.selectedControlId,
+                  selectedControlName: route.selectedControlName,
+                }
+              : {
+                  name: returnRouteName,
+                  selectedControlId: route.selectedControlId,
+                  selectedControlName: route.selectedControlName,
+                },
+          )
         }
         onSaved={() => {
           setTransactionsRefreshSignal((value) => value + 1);
@@ -172,6 +185,31 @@ function Root() {
     );
   }
 
+  if (route.name === 'text-transaction') {
+    return (
+      <TextTransactionScreen
+        selectedControlName={route.selectedControlName}
+        onBack={() =>
+          setRoute({
+            name: route.from,
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onReview={(draft) =>
+          setRoute({
+            name: 'review-text-transaction',
+            from: 'text-transaction',
+            returnTo: route.from,
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+            draft,
+          })
+        }
+      />
+    );
+  }
+
   if (route.name === 'dashboard') {
     return (
       <DashboardScreen
@@ -182,6 +220,14 @@ function Root() {
         onNewTransaction={() =>
           setRoute({
             name: 'new-transaction',
+            from: 'dashboard',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onTextTransaction={() =>
+          setRoute({
+            name: 'text-transaction',
             from: 'dashboard',
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
@@ -221,6 +267,14 @@ function Root() {
         onNewTransaction={() =>
           setRoute({
             name: 'new-transaction',
+            from: 'transactions',
+            selectedControlId: route.selectedControlId,
+            selectedControlName: route.selectedControlName,
+          })
+        }
+        onTextTransaction={() =>
+          setRoute({
+            name: 'text-transaction',
             from: 'transactions',
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
