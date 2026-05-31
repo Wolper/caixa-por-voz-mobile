@@ -1,7 +1,10 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '../lib/supabase';
+
+const SELECTED_CONTROL_STORAGE_KEY = 'selected_control_id';
 
 type AuthContextValue = {
   user: User | null;
@@ -30,7 +33,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     loadSession();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event: string, nextSession: Session | null) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event: string, nextSession: Session | null) => {
+      if (event === 'SIGNED_OUT' || !nextSession) {
+        AsyncStorage.removeItem(SELECTED_CONTROL_STORAGE_KEY).catch(() => undefined);
+      }
       setSession(nextSession);
     });
 
@@ -53,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { confirmationRequired: !data.session };
     },
     signOut: async () => {
+      await AsyncStorage.removeItem(SELECTED_CONTROL_STORAGE_KEY);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     },

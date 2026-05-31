@@ -205,6 +205,9 @@ export function DashboardScreen({
         <Text style={styles.title}>Início</Text>
         <Text style={styles.mvpHint}>Versão de validação para teste piloto.</Text>
         <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
+        <View style={styles.helpCard}>
+          <Text style={styles.helpText}>Este é o resumo do controle selecionado, com saldo do mês, receitas, despesas e contas pendentes.</Text>
+        </View>
       </View>
 
       <View style={styles.headerActions}>
@@ -299,6 +302,8 @@ const styles = StyleSheet.create({
   header: { gap: 6, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 15, color: '#3b3b3b' },
+  helpCard: { borderRadius: 10, backgroundColor: '#eef6ff', padding: 12, marginTop: 6 },
+  helpText: { fontSize: 14, lineHeight: 20, color: '#334155' },
   mvpHint: { fontSize: 13, color: '#555' },
   headerActions: { gap: 8, marginBottom: 14 },
   content: { flex: 1 },

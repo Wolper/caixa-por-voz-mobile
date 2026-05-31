@@ -451,6 +451,9 @@ export function TransactionsScreen({
           <PilotBadge />
           <Text style={styles.title}>Movimentações</Text>
           <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
+          <View style={styles.helpCard}>
+            <Text style={styles.helpText}>Use os filtros para encontrar movimentações por texto, tipo, status ou período. A lista mostra os lançamentos do controle atual.</Text>
+          </View>
         </View>
 
         <View style={styles.topActions}>
@@ -638,6 +641,8 @@ const styles = StyleSheet.create({
   header: { gap: 6, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 15, color: '#3b3b3b' },
+  helpCard: { borderRadius: 10, backgroundColor: '#eef6ff', padding: 12, marginTop: 6 },
+  helpText: { fontSize: 14, lineHeight: 20, color: '#334155' },
   topActions: { gap: 8, marginBottom: 12 },
   newTransactionButton: { backgroundColor: '#111', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   newTransactionButtonText: { color: '#fff', fontWeight: '700' },

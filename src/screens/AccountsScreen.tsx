@@ -297,6 +297,9 @@ export function AccountsScreen({ selectedControlId, selectedControlName, onBack,
         <PilotBadge />
         <Text style={styles.title}>Contas</Text>
         <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
+        <View style={styles.helpCard}>
+          <Text style={styles.helpText}>Aqui aparecem contas pendentes com vencimento, separando valores a pagar e a receber.</Text>
+        </View>
       </View>
 
       <View style={styles.summaryBox}>
@@ -352,6 +355,8 @@ const styles = StyleSheet.create({
   header: { gap: 6, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 15, color: '#3b3b3b' },
+  helpCard: { borderRadius: 10, backgroundColor: '#eef6ff', padding: 12, marginTop: 6 },
+  helpText: { fontSize: 14, lineHeight: 20, color: '#334155' },
   summaryBox: { borderWidth: 1, borderColor: '#d9d9d9', borderRadius: 12, padding: 12, gap: 4, marginBottom: 12 },
   summaryLabel: { fontSize: 13, color: '#555', fontWeight: '600' },
   summaryPayable: { fontSize: 15, color: '#b00020', fontWeight: '600' },
