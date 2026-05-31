@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -15,10 +15,21 @@ const profileTypeLabel: Record<Control['profile_type'], string> = {
   empresa: 'Controle empresarial',
 };
 
+const defaultControlName: Record<Control['profile_type'], string> = {
+  pessoal: 'Controle pessoal',
+  empresa: 'Controle da empresa',
+};
+
 type Props = {
   onOpenDashboard: (params: { controlId: string; controlName: string }) => void;
   onOpenAccounts: (params: { controlId: string; controlName: string }) => void;
 };
+
+function warnExpectedControlsError(error: unknown) {
+  if (__DEV__) {
+    console.warn('Erro esperado em controles no MVP piloto', error);
+  }
+}
 
 export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
   const { signOut } = useAuth();
@@ -27,6 +38,10 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [newControlName, setNewControlName] = useState(defaultControlName.pessoal);
+  const [newControlType, setNewControlType] = useState<Control['profile_type']>('pessoal');
+  const [creatingControl, setCreatingControl] = useState(false);
+  const [createControlMessage, setCreateControlMessage] = useState<string | null>(null);
 
   const loadControls = useCallback(async () => {
     setLoading(true);
@@ -57,7 +72,7 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
         await AsyncStorage.removeItem(SELECTED_CONTROL_STORAGE_KEY);
       }
     } catch (error) {
-      console.error('Erro ao carregar controles do MVP piloto', error);
+      warnExpectedControlsError(error);
       setErrorMessage('Não foi possível carregar seus controles agora. Tente novamente em instantes.');
       setControls([]);
       setSelectedControlId(null);
@@ -85,6 +100,46 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
     onOpenDashboard({ controlId: control.id, controlName: control.name });
   };
 
+  const handleControlTypeChange = (profileType: Control['profile_type']) => {
+    setNewControlType(profileType);
+    if (!newControlName.trim() || newControlName === defaultControlName.pessoal || newControlName === defaultControlName.empresa) {
+      setNewControlName(defaultControlName[profileType]);
+    }
+  };
+
+  const handleCreateControl = async () => {
+    const trimmedName = newControlName.trim();
+
+    if (!trimmedName) {
+      setCreateControlMessage('Informe um nome para o controle.');
+      return;
+    }
+
+    setCreatingControl(true);
+    setCreateControlMessage(null);
+
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .insert({ name: trimmedName, profile_type: newControlType, cnpj: null })
+        .select('id, name, cnpj, profile_type')
+        .single();
+
+      if (error) throw error;
+
+      const createdControl = data as Control;
+      setControls((currentControls) => [...currentControls, createdControl].sort((first, second) => first.name.localeCompare(second.name)));
+      setSelectedControlId(createdControl.id);
+      await AsyncStorage.setItem(SELECTED_CONTROL_STORAGE_KEY, createdControl.id);
+      onOpenDashboard({ controlId: createdControl.id, controlName: createdControl.name });
+    } catch (error) {
+      warnExpectedControlsError(error);
+      setCreateControlMessage('Não foi possível criar o controle agora. Tente novamente.');
+    } finally {
+      setCreatingControl(false);
+    }
+  };
+
   const handleOpenAccounts = () => {
     if (!selectedControl) return;
     onOpenAccounts({ controlId: selectedControl.id, controlName: selectedControl.name });
@@ -104,7 +159,7 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
       <View style={styles.header}>
         <PilotBadge />
         <Text style={styles.title}>Meus controles</Text>
-        <Text style={styles.subtitle}>Versão de validação: escolha um controle para testar o fluxo principal.</Text>
+        <Text style={styles.subtitle}>Escolha um controle existente ou crie um novo para iniciar o teste.</Text>
         <Text style={styles.currentControl}>Controle atual: {currentControlName}</Text>
       </View>
 
@@ -120,36 +175,68 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
             <Text style={styles.secondaryButtonText}>Tentar novamente</Text>
           </Pressable>
         </View>
-      ) : controls.length === 0 ? (
-        <View style={styles.centeredContent}>
-          <Text style={styles.feedbackText}>Você ainda não possui controles cadastrados.</Text>
-        </View>
       ) : (
         <View style={styles.listContainer}>
-          <Text style={styles.sectionTitle}>Selecionar controle</Text>
-          {controls.map((control) => {
-            const isSelected = control.id === selectedControlId;
+          {controls.length === 0 ? (
+            <View style={styles.emptyStateCard}>
+              <Text style={styles.emptyStateTitle}>Você ainda não possui controles. Crie seu primeiro controle para começar.</Text>
+            </View>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>Selecionar controle</Text>
+              {controls.map((control) => {
+                const isSelected = control.id === selectedControlId;
 
-            return (
-              <Pressable
-                key={control.id}
-                style={[styles.controlCard, isSelected ? styles.controlCardSelected : undefined]}
-                onPress={() => handleSelectAndOpenDashboard(control)}
-              >
-                <Text style={styles.controlName}>{control.name}</Text>
-                <Text style={styles.controlType}>{profileTypeLabel[control.profile_type]}</Text>
-                {control.cnpj ? <Text style={styles.controlCnpj}>CNPJ: {control.cnpj}</Text> : null}
+                return (
+                  <Pressable
+                    key={control.id}
+                    style={[styles.controlCard, isSelected ? styles.controlCardSelected : undefined]}
+                    onPress={() => handleSelectAndOpenDashboard(control)}
+                  >
+                    <Text style={styles.controlName}>{control.name}</Text>
+                    <Text style={styles.controlType}>{profileTypeLabel[control.profile_type]}</Text>
+                    {control.cnpj ? <Text style={styles.controlCnpj}>CNPJ: {control.cnpj}</Text> : null}
+                  </Pressable>
+                );
+              })}
+
+              <Pressable style={[styles.openButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenDashboard}>
+                <Text style={styles.openButtonText}>Abrir Início</Text>
               </Pressable>
-            );
-          })}
 
-          <Pressable style={[styles.openButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenDashboard}>
-            <Text style={styles.openButtonText}>Abrir Início</Text>
-          </Pressable>
+              <Pressable style={[styles.accountsButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenAccounts}>
+                <Text style={styles.accountsButtonText}>Ver contas</Text>
+              </Pressable>
+            </>
+          )}
 
-          <Pressable style={[styles.accountsButton, !selectedControl && styles.openButtonDisabled]} disabled={!selectedControl} onPress={handleOpenAccounts}>
-            <Text style={styles.accountsButtonText}>Ver contas</Text>
-          </Pressable>
+          <View style={styles.createControlCard}>
+            <Text style={styles.sectionTitle}>{controls.length === 0 ? 'Criar primeiro controle' : 'Criar novo controle'}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Nome do controle"
+              value={newControlName}
+              onChangeText={setNewControlName}
+            />
+            <View style={styles.typeSelector}>
+              <Pressable
+                style={[styles.typeOption, newControlType === 'pessoal' ? styles.typeOptionSelected : undefined]}
+                onPress={() => handleControlTypeChange('pessoal')}
+              >
+                <Text style={[styles.typeOptionText, newControlType === 'pessoal' ? styles.typeOptionTextSelected : undefined]}>Pessoal</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.typeOption, newControlType === 'empresa' ? styles.typeOptionSelected : undefined]}
+                onPress={() => handleControlTypeChange('empresa')}
+              >
+                <Text style={[styles.typeOptionText, newControlType === 'empresa' ? styles.typeOptionTextSelected : undefined]}>Empresarial</Text>
+              </Pressable>
+            </View>
+            {createControlMessage ? <Text style={styles.errorText}>{createControlMessage}</Text> : null}
+            <Pressable style={[styles.openButton, creatingControl && styles.openButtonDisabled]} disabled={creatingControl} onPress={handleCreateControl}>
+              <Text style={styles.openButtonText}>{creatingControl ? 'Criando...' : controls.length === 0 ? 'Criar primeiro controle' : 'Criar controle'}</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -208,6 +295,56 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     marginBottom: 4,
+  },
+  emptyStateCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d9d9d9',
+    padding: 16,
+    gap: 8,
+    backgroundColor: '#f8f8f8',
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#111',
+  },
+  createControlCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d9d9d9',
+    padding: 14,
+    gap: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  typeSelector: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  typeOption: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1b64d9',
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  typeOptionSelected: {
+    backgroundColor: '#1b64d9',
+  },
+  typeOptionText: {
+    color: '#1b64d9',
+    fontWeight: '700',
+  },
+  typeOptionTextSelected: {
+    color: '#fff',
   },
   controlCard: {
     borderRadius: 12,

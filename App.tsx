@@ -15,6 +15,27 @@ import { TransactionsScreen } from './src/screens/TransactionsScreen';
 import { VoiceTransactionScreen } from './src/screens/VoiceTransactionScreen';
 import type { Transaction } from './src/types/transaction';
 
+const invalidEmailPilotMessage = 'Informe um e-mail válido. Para o teste piloto, use um e-mail real para receber confirmação, se solicitado.';
+const loginErrorPilotMessage = 'Não foi possível entrar. Confira seu e-mail, senha ou confirmação do cadastro.';
+
+function isEmailFormatValid(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isInvalidEmailAuthError(error: unknown) {
+  return /invalid.*email|email.*invalid|validate email/i.test(getErrorMessage(error));
+}
+
+function warnExpectedAuthError(error: unknown) {
+  if (__DEV__) {
+    console.warn('Erro esperado de autenticação no MVP piloto', error);
+  }
+}
+
 type SelectedControl = {
   selectedControlId: string;
   selectedControlName: string;
@@ -41,8 +62,15 @@ function AuthScreen() {
   const [message, setMessage] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    if (!email.trim() || !password.trim()) {
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail || !password.trim()) {
       setMessage('Preencha e-mail e senha para continuar.');
+      return;
+    }
+
+    if (!isEmailFormatValid(normalizedEmail)) {
+      setMessage(invalidEmailPilotMessage);
       return;
     }
 
@@ -51,14 +79,24 @@ function AuthScreen() {
 
     try {
       if (mode === 'login') {
-        await signIn(email.trim(), password);
+        await signIn(normalizedEmail, password);
       } else {
-        await signUp(email.trim(), password);
-        setMessage('Conta criada! Verifique seu e-mail para confirmar o cadastro, se necessário.');
+        const { confirmationRequired } = await signUp(normalizedEmail, password);
+        setMessage(
+          confirmationRequired
+            ? 'Conta criada. Verifique seu e-mail para confirmar o acesso antes de entrar.'
+            : 'Conta criada. Você já pode entrar no MVP.',
+        );
       }
     } catch (error) {
-      console.error('Erro de autenticação no MVP piloto', error);
-      setMessage(mode === 'login' ? 'Não foi possível entrar agora. Confira e-mail e senha e tente novamente.' : 'Não foi possível criar sua conta agora. Tente novamente em instantes.');
+      warnExpectedAuthError(error);
+      setMessage(
+        mode === 'login'
+          ? loginErrorPilotMessage
+          : isInvalidEmailAuthError(error)
+            ? invalidEmailPilotMessage
+            : 'Não foi possível criar sua conta agora. Tente novamente em instantes.',
+      );
     } finally {
       setSubmitting(false);
     }
