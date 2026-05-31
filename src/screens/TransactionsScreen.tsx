@@ -446,13 +446,14 @@ export function TransactionsScreen({
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <PilotBadge />
-        <Text style={styles.title}>Movimentações</Text>
-        <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
-      </View>
+      <ScrollView style={styles.screenScroll} contentContainerStyle={styles.screenContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.header}>
+          <PilotBadge />
+          <Text style={styles.title}>Movimentações</Text>
+          <Text style={styles.subtitle}>Controle atual: {selectedControlName}</Text>
+        </View>
 
-      <View style={styles.topActions}>
+        <View style={styles.topActions}>
         <Pressable style={styles.newTransactionButton} onPress={onNewTransaction}>
           <Text style={styles.newTransactionButtonText}>Adicionar lançamento manual</Text>
         </Pressable>
@@ -472,16 +473,16 @@ export function TransactionsScreen({
         >
           <Text style={styles.exportButtonText}>{exportingCsv ? 'Exportando...' : 'Exportar CSV'}</Text>
         </Pressable>
-      </View>
+        </View>
 
-      <View style={styles.summaryBox}>
-        <Text style={styles.summaryLabel}>Resumo dos lançamentos filtrados</Text>
-        <Text style={styles.summaryText}>Receitas: {formatCurrencyBRL(summary.receitas)}</Text>
-        <Text style={styles.summaryText}>Despesas: {formatCurrencyBRL(summary.despesas)}</Text>
-        <Text style={styles.summaryBalance}>Saldo do período: {formatCurrencyBRL(summary.receitas - summary.despesas)}</Text>
-      </View>
+        <View style={styles.summaryBox}>
+          <Text style={styles.summaryLabel}>Resumo dos lançamentos filtrados</Text>
+          <Text style={styles.summaryText}>Receitas: {formatCurrencyBRL(summary.receitas)}</Text>
+          <Text style={styles.summaryText}>Despesas: {formatCurrencyBRL(summary.despesas)}</Text>
+          <Text style={styles.summaryBalance}>Saldo do período: {formatCurrencyBRL(summary.receitas - summary.despesas)}</Text>
+        </View>
 
-      <View style={styles.filtersBox}>
+        <View style={styles.filtersBox}>
         <Text style={styles.filtersTitle}>Filtros</Text>
 
         <Text style={styles.inputLabel}>Texto/descrição</Text>
@@ -545,39 +546,39 @@ export function TransactionsScreen({
             <Text style={styles.clearFilterButtonText}>Limpar filtros</Text>
           </Pressable>
         </View>
-      </View>
+        </View>
 
-      {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
+        {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
-      {loading ? (
-        <View style={styles.centeredContent}>
-          <ActivityIndicator size="large" />
-          <Text style={styles.feedbackText}>Carregando movimentações...</Text>
-          <Text style={styles.feedbackHint}>Atualizando lista, resumo e filtros aplicados.</Text>
-        </View>
-      ) : errorMessage ? (
-        <View style={styles.centeredContent}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-          <Pressable style={styles.secondaryButton} onPress={loadTransactions}>
-            <Text style={styles.secondaryButtonText}>Tentar novamente</Text>
-          </Pressable>
-        </View>
-      ) : transactions.length === 0 ? (
-        <View style={styles.centeredContent}>
-          <Text style={styles.feedbackText}>
-            {hasActiveAppliedFilters
-              ? 'Nenhuma movimentação encontrada com os filtros informados.'
-              : 'Ainda não há movimentações para este controle.'}
-          </Text>
-          {hasActiveAppliedFilters ? (
-            <Text style={styles.feedbackHint}>Limpe ou ajuste os filtros para ver outras movimentações.</Text>
-          ) : (
-            <Text style={styles.feedbackHint}>Use lançamento manual, texto ou voz simulada para começar.</Text>
-          )}
-        </View>
-      ) : (
-        <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
-          {transactions.map((transaction) => {
+        {loading ? (
+          <View style={styles.centeredContent}>
+            <ActivityIndicator size="large" />
+            <Text style={styles.feedbackText}>Carregando movimentações...</Text>
+            <Text style={styles.feedbackHint}>Atualizando lista, resumo e filtros aplicados.</Text>
+          </View>
+        ) : errorMessage ? (
+          <View style={styles.centeredContent}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+            <Pressable style={styles.secondaryButton} onPress={loadTransactions}>
+              <Text style={styles.secondaryButtonText}>Tentar novamente</Text>
+            </Pressable>
+          </View>
+        ) : transactions.length === 0 ? (
+          <View style={styles.centeredContent}>
+            <Text style={styles.feedbackText}>
+              {hasActiveAppliedFilters
+                ? 'Nenhuma movimentação encontrada com os filtros informados.'
+                : 'Ainda não há movimentações para este controle.'}
+            </Text>
+            {hasActiveAppliedFilters ? (
+              <Text style={styles.feedbackHint}>Limpe ou ajuste os filtros para ver outras movimentações.</Text>
+            ) : (
+              <Text style={styles.feedbackHint}>Use lançamento manual, texto ou voz simulada para começar.</Text>
+            )}
+          </View>
+        ) : (
+          <View style={styles.listContent}>
+            {transactions.map((transaction) => {
             const value = toNumber(transaction.amount);
             const type = transaction.type ?? '-';
             const date = transaction.transaction_date;
@@ -613,24 +614,27 @@ export function TransactionsScreen({
                 </View>
               </View>
             );
-          })}
-        </ScrollView>
-      )}
+            })}
+          </View>
+        )}
 
-      <View style={styles.footerButtons}>
-        <Pressable style={styles.secondaryButton} onPress={onBack}>
-          <Text style={styles.secondaryButtonText}>Voltar para Início</Text>
-        </Pressable>
-        <Pressable style={styles.logoutButton} onPress={handleSignOut} disabled={signingOut}>
-          <Text style={styles.logoutButtonText}>{signingOut ? 'Saindo...' : 'Sair'}</Text>
-        </Pressable>
-      </View>
+        <View style={styles.footerButtons}>
+          <Pressable style={styles.secondaryButton} onPress={onBack}>
+            <Text style={styles.secondaryButtonText}>Voltar para Início</Text>
+          </Pressable>
+          <Pressable style={styles.logoutButton} onPress={handleSignOut} disabled={signingOut}>
+            <Text style={styles.logoutButtonText}>{signingOut ? 'Saindo...' : 'Sair'}</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  screenScroll: { flex: 1 },
+  screenContent: { flexGrow: 1, padding: 24, paddingBottom: 48 },
   header: { gap: 6, marginBottom: 12 },
   title: { fontSize: 28, fontWeight: '700' },
   subtitle: { fontSize: 15, color: '#3b3b3b' },
@@ -649,7 +653,7 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 13, color: '#555', fontWeight: '600' },
   summaryText: { fontSize: 15, color: '#222' },
   summaryBalance: { fontSize: 16, fontWeight: '700', color: '#111' },
-  centeredContent: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  centeredContent: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 24 },
   feedbackText: { textAlign: 'center', color: '#444', fontSize: 16 },
   errorText: { textAlign: 'center', color: '#b00020', fontSize: 16 },
   successText: { textAlign: 'center', color: '#116329', fontSize: 15, marginBottom: 12 },
@@ -670,8 +674,7 @@ const styles = StyleSheet.create({
   applyFilterButtonText: { color: '#fff', fontWeight: '700' },
   clearFilterButton: { borderRadius: 10, borderWidth: 1, borderColor: '#333', paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },
   clearFilterButtonText: { color: '#111', fontWeight: '700' },
-  listContainer: { flex: 1 },
-  listContent: { gap: 10, paddingBottom: 12 },
+  listContent: { gap: 10 },
   transactionCard: { borderRadius: 12, borderWidth: 1, borderColor: '#d9d9d9', padding: 14, gap: 3 },
   transactionDescription: { fontSize: 16, fontWeight: '700', color: '#111' },
   transactionInfo: { fontSize: 14, color: '#333' },
