@@ -10,18 +10,18 @@ import {
 } from 'react-native';
 import { PilotBadge } from '../components/PilotBadge';
 import { supabase } from '../lib/supabase';
+import {
+  controlHasCategoriesForAllDefaultTypes,
+  loadCategoriesForControl,
+  prepareDefaultCategoriesForControl,
+} from '../services/categories';
+import type { CategoryRow } from '../services/categories';
 import type { Transaction } from '../types/transaction';
 import type { TextTransactionDraft } from './TextTransactionScreen';
 
 type TransactionType = 'receita' | 'despesa';
 type TransactionStatus = 'pago' | 'pendente';
-
-type Category = {
-  id: string;
-  name: string;
-  type?: TransactionType | string | null;
-  company_id?: string | null;
-};
+type Category = CategoryRow;
 
 type NewTransactionScreenProps = {
   selectedControlId: string;
@@ -213,12 +213,14 @@ function logSupabaseError(context: string, error: SupabaseErrorLike | null) {
     return;
   }
 
-  console.error(context, {
-    message: error.message,
-    code: error.code,
-    details: error.details,
-    hint: error.hint,
-  });
+  if (__DEV__) {
+    console.warn(context, {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+  }
 }
 
 export function NewTransactionScreen({
@@ -245,6 +247,7 @@ export function NewTransactionScreen({
   const [categorySelectorOpen, setCategorySelectorOpen] = useState(false);
 
   const [loadingCategories, setLoadingCategories] = useState(false);
+  const [preparingCategories, setPreparingCategories] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
@@ -341,63 +344,47 @@ export function NewTransactionScreen({
 
     async function loadCategories() {
       setLoadingCategories(true);
+      setPreparingCategories(false);
       setCategoryError(null);
 
-      const primaryResult = await supabase
-        .from('categories')
-        .select('id, name, type, company_id')
-        .eq('company_id', selectedControlId)
-        .order('name', { ascending: true });
+      try {
+        const loadedCategories = await loadCategoriesForControl(selectedControlId);
 
-      if (!isMounted) {
-        return;
-      }
+        if (!isMounted) {
+          return;
+        }
 
-      if (!primaryResult.error) {
-        setCategories((primaryResult.data ?? []) as Category[]);
-        setLoadingCategories(false);
-        return;
-      }
+        if (controlHasCategoriesForAllDefaultTypes(loadedCategories)) {
+          setCategories(loadedCategories);
+          return;
+        }
 
-      logSupabaseError('Erro ao carregar categorias com company_id/type', primaryResult.error);
+        setPreparingCategories(true);
+        const preparedCategories = await prepareDefaultCategoriesForControl(selectedControlId);
 
-      const fallbackWithTypeResult = await supabase
-        .from('categories')
-        .select('id, name, type')
-        .order('name', { ascending: true });
+        if (!isMounted) {
+          return;
+        }
 
-      if (!isMounted) {
-        return;
-      }
+        setCategories(preparedCategories);
 
-      if (!fallbackWithTypeResult.error) {
-        setCategories((fallbackWithTypeResult.data ?? []) as Category[]);
-        setLoadingCategories(false);
-        return;
-      }
+        if (!controlHasCategoriesForAllDefaultTypes(preparedCategories)) {
+          setCategoryError('Não encontramos categorias para este controle. Tente voltar e abrir novamente ou avise o responsável pelo piloto.');
+        }
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
 
-      logSupabaseError('Erro ao carregar categorias com type', fallbackWithTypeResult.error);
-
-      const fallbackResult = await supabase
-        .from('categories')
-        .select('id, name')
-        .order('name', { ascending: true });
-
-      if (!isMounted) {
-        return;
-      }
-
-      if (fallbackResult.error) {
-        logSupabaseError('Erro ao carregar categorias sem type', fallbackResult.error);
-
+        logSupabaseError('Erro ao preparar categorias do controle', error as SupabaseErrorLike);
         setCategories([]);
-        setCategoryError('Não foi possível carregar as categorias agora.');
-        setLoadingCategories(false);
-        return;
+        setCategoryError('Não encontramos categorias para este controle. Tente voltar e abrir novamente ou avise o responsável pelo piloto.');
+      } finally {
+        if (isMounted) {
+          setLoadingCategories(false);
+          setPreparingCategories(false);
+        }
       }
-
-      setCategories((fallbackResult.data ?? []) as Category[]);
-      setLoadingCategories(false);
     }
 
     loadCategories();
@@ -437,6 +424,11 @@ export function NewTransactionScreen({
 
     if (dueDate.trim() && !normalizedDueDate) {
       setFormError('O vencimento é opcional, mas precisa estar em YYYY-MM-DD ou DD/MM/AAAA quando preenchido.');
+      return;
+    }
+
+    if (loadingCategories || preparingCategories) {
+      setFormError('Aguarde enquanto preparamos as categorias do controle.');
       return;
     }
 
@@ -532,9 +524,9 @@ export function NewTransactionScreen({
   }
 
   const categoryEmptyMessage =
-    type === 'receita'
-      ? 'Nenhuma categoria de receita disponível para este controle.'
-      : 'Nenhuma categoria de despesa disponível para este controle.';
+    'Não encontramos categorias para este controle. Tente voltar e abrir novamente ou avise o responsável pelo piloto.';
+  const categoryLoadingMessage = preparingCategories ? 'Preparando categorias do controle...' : 'Carregando categorias...';
+  const saveDisabled = saving || loadingCategories || preparingCategories;
 
   return (
     <ScrollView
@@ -637,7 +629,7 @@ export function NewTransactionScreen({
         {loadingCategories ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator />
-            <Text style={styles.helperText}>Carregando categorias...</Text>
+            <Text style={styles.helperText}>{categoryLoadingMessage}</Text>
           </View>
         ) : null}
 
@@ -775,9 +767,9 @@ export function NewTransactionScreen({
         {saveFeedback ? <Text style={styles.successText}>{saveFeedback}</Text> : null}
 
         <Pressable
-          style={[styles.primaryButton, saving && styles.disabledButton]}
+          style={[styles.primaryButton, saveDisabled && styles.disabledButton]}
           onPress={handleSave}
-          disabled={saving}
+          disabled={saveDisabled}
         >
           {saving ? (
             <ActivityIndicator color="#ffffff" />

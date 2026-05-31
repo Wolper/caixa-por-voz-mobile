@@ -7,6 +7,7 @@ import type { PostgrestError } from '@supabase/supabase-js';
 import { PilotBadge } from '../components/PilotBadge';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { prepareDefaultCategoriesForControl } from '../services/categories';
 import { Control } from '../types/control';
 
 const SELECTED_CONTROL_STORAGE_KEY = 'selected_control_id';
@@ -243,6 +244,17 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
 
       const createdControl = data as Control;
       setControls((currentControls) => [...currentControls, createdControl].sort((first, second) => first.name.localeCompare(second.name)));
+
+      try {
+        await prepareDefaultCategoriesForControl(createdControl.id);
+      } catch (categoryError) {
+        warnExpectedControlsError(categoryError);
+        setSelectedControlId(createdControl.id);
+        await AsyncStorage.setItem(SELECTED_CONTROL_STORAGE_KEY, createdControl.id);
+        setCreateControlMessage('O controle foi criado, mas não foi possível preparar as categorias. Tente abrir o controle novamente.');
+        return;
+      }
+
       setSelectedControlId(createdControl.id);
       await AsyncStorage.setItem(SELECTED_CONTROL_STORAGE_KEY, createdControl.id);
       onOpenDashboard({ controlId: createdControl.id, controlName: createdControl.name });

@@ -4,4 +4,5 @@ export type Category = {
   id: string;
   name: string;
   type?: CategoryType | null;
+  company_id?: string | null;
 };
