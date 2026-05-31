@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 import { PilotBadge } from '../components/PilotBadge';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +10,18 @@ import { supabase } from '../lib/supabase';
 import { Control } from '../types/control';
 
 const SELECTED_CONTROL_STORAGE_KEY = 'selected_control_id';
+const CONTROL_SELECT_FIELDS = 'id, name, cnpj, profile_type';
+const COMPANY_OWNER_FIELD_CANDIDATES = ['user_id', 'owner_id', 'created_by', 'profile_id'] as const;
+const RLS_CREATE_CONTROL_MESSAGE =
+  'Não foi possível criar o controle porque seu usuário ainda não tem permissão no ambiente de teste. Avise o responsável pelo piloto.';
+const UNAUTHENTICATED_CREATE_CONTROL_MESSAGE = 'Entre novamente para criar um controle.';
+
+type CompanyOwnerField = (typeof COMPANY_OWNER_FIELD_CANDIDATES)[number];
+type CompanyInsertPayload = {
+  name: string;
+  profile_type: Control['profile_type'];
+  cnpj: null;
+} & Partial<Record<CompanyOwnerField, string>>;
 
 const profileTypeLabel: Record<Control['profile_type'], string> = {
   pessoal: 'Controle pessoal',
@@ -31,6 +44,49 @@ function warnExpectedControlsError(error: unknown) {
   }
 }
 
+function isSupabaseError(error: unknown): error is PostgrestError {
+  return typeof error === 'object' && error !== null && 'code' in error && 'message' in error;
+}
+
+function isColumnMissingError(error: unknown) {
+  if (!isSupabaseError(error)) return false;
+
+  return error.code === 'PGRST204' || error.message.toLowerCase().includes('could not find');
+}
+
+function isRlsViolationError(error: unknown) {
+  if (!isSupabaseError(error)) return false;
+
+  return error.code === '42501' || error.message.toLowerCase().includes('row-level security');
+}
+
+async function getAuthenticatedUserId() {
+  const { data, error } = await supabase.auth.getSession();
+
+  if (error) throw error;
+
+  return data.session?.user.id ?? null;
+}
+
+async function findCompanyOwnerField() {
+  for (const ownerField of COMPANY_OWNER_FIELD_CANDIDATES) {
+    const { error } = await supabase.from('companies').select(ownerField).limit(1);
+
+    if (!error) {
+      return ownerField;
+    }
+
+    if (isColumnMissingError(error)) {
+      continue;
+    }
+
+    warnExpectedControlsError(error);
+    return null;
+  }
+
+  return null;
+}
+
 export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
   const { signOut } = useAuth();
   const [controls, setControls] = useState<Control[]>([]);
@@ -48,7 +104,7 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
     setErrorMessage(null);
 
     try {
-      const { data, error } = await supabase.from('companies').select('id, name, cnpj, profile_type').order('name', { ascending: true });
+      const { data, error } = await supabase.from('companies').select(CONTROL_SELECT_FIELDS).order('name', { ascending: true });
 
       if (error) throw error;
 
@@ -119,10 +175,24 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
     setCreateControlMessage(null);
 
     try {
+      const userId = await getAuthenticatedUserId();
+
+      if (!userId) {
+        setCreateControlMessage(UNAUTHENTICATED_CREATE_CONTROL_MESSAGE);
+        return;
+      }
+
+      const ownerField = await findCompanyOwnerField();
+      const insertPayload: CompanyInsertPayload = { name: trimmedName, profile_type: newControlType, cnpj: null };
+
+      if (ownerField) {
+        insertPayload[ownerField] = userId;
+      }
+
       const { data, error } = await supabase
         .from('companies')
-        .insert({ name: trimmedName, profile_type: newControlType, cnpj: null })
-        .select('id, name, cnpj, profile_type')
+        .insert(insertPayload)
+        .select(CONTROL_SELECT_FIELDS)
         .single();
 
       if (error) throw error;
@@ -133,8 +203,13 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
       await AsyncStorage.setItem(SELECTED_CONTROL_STORAGE_KEY, createdControl.id);
       onOpenDashboard({ controlId: createdControl.id, controlName: createdControl.name });
     } catch (error) {
-      warnExpectedControlsError(error);
-      setCreateControlMessage('Não foi possível criar o controle agora. Tente novamente.');
+      if (isRlsViolationError(error)) {
+        warnExpectedControlsError(error);
+        setCreateControlMessage(RLS_CREATE_CONTROL_MESSAGE);
+      } else {
+        console.error('Erro inesperado ao criar controle', error);
+        setCreateControlMessage('Não foi possível criar o controle agora. Tente novamente.');
+      }
     } finally {
       setCreatingControl(false);
     }
