@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase';
 import { prepareDefaultCategoriesForControl } from '../services/categories';
 import { Control } from '../types/control';
 
-const SELECTED_CONTROL_STORAGE_KEY = 'selected_control_id';
+export const SELECTED_CONTROL_STORAGE_KEY = 'selected_control_id';
 const CONTROL_SELECT_FIELDS = 'id, name, cnpj, profile_type';
 const COMPANY_OWNER_FIELD_CANDIDATES = ['user_id', 'owner_id', 'created_by', 'profile_id'] as const;
 const RLS_CREATE_CONTROL_MESSAGE =
@@ -123,6 +123,10 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
       if (selectedExists) {
         setSelectedControlId(storedControlId);
         return;
+      }
+
+      if (storedControlId) {
+        await AsyncStorage.removeItem(SELECTED_CONTROL_STORAGE_KEY);
       }
 
       if (fetchedControls.length > 0) {
@@ -246,7 +250,7 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
       setControls((currentControls) => [...currentControls, createdControl].sort((first, second) => first.name.localeCompare(second.name)));
 
       try {
-        await prepareDefaultCategoriesForControl(createdControl.id);
+        await prepareDefaultCategoriesForControl(createdControl.id, createdControl.profile_type);
       } catch (categoryError) {
         warnExpectedControlsError(categoryError);
         setSelectedControlId(createdControl.id);
@@ -280,6 +284,7 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
+      await AsyncStorage.removeItem(SELECTED_CONTROL_STORAGE_KEY);
       await signOut();
     } finally {
       setSigningOut(false);
@@ -299,6 +304,11 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
           <Text style={styles.subtitle}>
             No MVP piloto, você pode usar um controle pessoal e uma empresa piloto. Multiempresa será parte de um plano pago futuramente.
           </Text>
+          <View style={styles.helpCard}>
+            <Text style={styles.helpText}>
+              Use controle pessoal para suas finanças individuais. Use controle empresarial para acompanhar uma empresa ou negócio.
+            </Text>
+          </View>
           <Text style={styles.currentControl}>Controle atual: {currentControlName}</Text>
         </View>
 
@@ -318,7 +328,8 @@ export function ControlsScreen({ onOpenDashboard, onOpenAccounts }: Props) {
           <View style={styles.listContainer}>
             {controls.length === 0 ? (
               <View style={styles.emptyStateCard}>
-                <Text style={styles.emptyStateTitle}>Você ainda não possui controles. Crie seu primeiro controle para começar.</Text>
+                <Text style={styles.emptyStateTitle}>Crie seu primeiro controle para começar.</Text>
+                <Text style={styles.emptyStateText}>Depois de criar um controle, você poderá acessar Início, lançamentos, movimentações e contas.</Text>
               </View>
             ) : (
               <>
@@ -502,6 +513,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
     color: '#111',
+  },
+  emptyStateText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#555',
+    textAlign: 'center',
+  },
+  helpCard: {
+    borderRadius: 10,
+    backgroundColor: '#eef6ff',
+    padding: 12,
+  },
+  helpText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#334155',
   },
   createControlCard: {
     borderRadius: 12,

@@ -1,11 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { PilotBadge } from './src/components/PilotBadge';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { ControlsScreen } from './src/screens/ControlsScreen';
+import { ControlsScreen, SELECTED_CONTROL_STORAGE_KEY } from './src/screens/ControlsScreen';
 import { DashboardScreen } from './src/screens/DashboardScreen';
 import { AccountsScreen } from './src/screens/AccountsScreen';
 import { NewTransactionScreen } from './src/screens/NewTransactionScreen';
@@ -13,6 +14,7 @@ import { MvpChecklistScreen } from './src/screens/MvpChecklistScreen';
 import { TextTransactionScreen, type TextTransactionDraft } from './src/screens/TextTransactionScreen';
 import { TransactionsScreen } from './src/screens/TransactionsScreen';
 import { VoiceTransactionScreen } from './src/screens/VoiceTransactionScreen';
+import { supabase } from './src/lib/supabase';
 import type { Transaction } from './src/types/transaction';
 
 const invalidEmailPilotMessage = 'Informe um e-mail válido. Para o teste piloto, use um e-mail real para receber confirmação, se solicitado.';
@@ -40,6 +42,11 @@ type SelectedControl = {
   selectedControlId: string;
   selectedControlName: string;
 };
+
+
+function routeNeedsSelectedControl(route: AppRoute): route is Exclude<AppRoute, { name: 'controls' }> {
+  return route.name !== 'controls';
+}
 
 type AppRoute =
   | { name: 'controls' }
@@ -144,6 +151,55 @@ function Root() {
   const [route, setRoute] = useState<AppRoute>({ name: 'controls' });
   const [transactionsRefreshSignal, setTransactionsRefreshSignal] = useState(0);
   const [dashboardRefreshSignal, setDashboardRefreshSignal] = useState(0);
+  const previousUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const previousUserId = previousUserIdRef.current;
+    const nextUserId = user?.id ?? null;
+
+    if (previousUserId !== nextUserId) {
+      previousUserIdRef.current = nextUserId;
+      setRoute({ name: 'controls' });
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user || !routeNeedsSelectedControl(route)) {
+      return;
+    }
+
+    let isMounted = true;
+
+    async function validateSelectedControl() {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name')
+        .eq('id', route.selectedControlId)
+        .maybeSingle();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (error || !data) {
+        await AsyncStorage.removeItem(SELECTED_CONTROL_STORAGE_KEY);
+        if (isMounted) {
+          setRoute({ name: 'controls' });
+        }
+        return;
+      }
+
+      if (data.name !== route.selectedControlName) {
+        setRoute({ ...route, selectedControlName: data.name });
+      }
+    }
+
+    validateSelectedControl();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [route, user]);
 
   if (loading) {
     return (
@@ -158,6 +214,28 @@ function Root() {
     return <AuthScreen />;
   }
 
+
+  if (previousUserIdRef.current !== user.id) {
+    return (
+      <ControlsScreen
+        onOpenDashboard={({ controlId, controlName }) =>
+          setRoute({
+            name: 'dashboard',
+            selectedControlId: controlId,
+            selectedControlName: controlName,
+          })
+        }
+        onOpenAccounts={({ controlId, controlName }) =>
+          setRoute({
+            name: 'accounts',
+            from: 'controls',
+            selectedControlId: controlId,
+            selectedControlName: controlName,
+          })
+        }
+      />
+    );
+  }
 
   if (route.name === 'accounts') {
     return (

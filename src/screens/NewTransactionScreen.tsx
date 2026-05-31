@@ -12,10 +12,12 @@ import { PilotBadge } from '../components/PilotBadge';
 import { supabase } from '../lib/supabase';
 import {
   controlHasCategoriesForAllDefaultTypes,
-  loadCategoriesForControl,
+  filterCategoriesForProfile,
+  loadControlProfileTypeForCategories,
   prepareDefaultCategoriesForControl,
 } from '../services/categories';
 import type { CategoryRow } from '../services/categories';
+import type { ControlProfileType } from '../types/control';
 import type { Transaction } from '../types/transaction';
 import type { TextTransactionDraft } from './TextTransactionScreen';
 
@@ -243,6 +245,7 @@ export function NewTransactionScreen({
   const [paymentMethod, setPaymentMethod] = useState('');
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [controlProfileType, setControlProfileType] = useState<ControlProfileType>('empresa');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [categorySelectorOpen, setCategorySelectorOpen] = useState(false);
 
@@ -300,7 +303,15 @@ export function NewTransactionScreen({
   }, [initialDraft, transactionToEdit]);
 
   const filteredCategories = useMemo(() => {
-    const compatibleCategories = categories.filter((category) => {
+    const profileCategories = filterCategoriesForProfile(categories, controlProfileType);
+    const selectedCategoryFromHistory = selectedCategoryId
+      ? categories.filter(
+          (category) =>
+            category.id === selectedCategoryId &&
+            !profileCategories.some((profileCategory) => profileCategory.id === category.id),
+        )
+      : [];
+    const compatibleCategories = [...profileCategories, ...selectedCategoryFromHistory].filter((category) => {
       if (!category.type) {
         return true;
       }
@@ -309,7 +320,7 @@ export function NewTransactionScreen({
     });
 
     return dedupeCategoriesByName(compatibleCategories);
-  }, [categories, type]);
+  }, [categories, controlProfileType, selectedCategoryId, type]);
 
   const selectedCategory = useMemo(() => {
     return filteredCategories.find((category) => category.id === selectedCategoryId);
@@ -348,19 +359,15 @@ export function NewTransactionScreen({
       setCategoryError(null);
 
       try {
-        const loadedCategories = await loadCategoriesForControl(selectedControlId);
+        const profileType = await loadControlProfileTypeForCategories(selectedControlId);
 
         if (!isMounted) {
           return;
         }
 
-        if (controlHasCategoriesForAllDefaultTypes(loadedCategories)) {
-          setCategories(loadedCategories);
-          return;
-        }
-
+        setControlProfileType(profileType);
         setPreparingCategories(true);
-        const preparedCategories = await prepareDefaultCategoriesForControl(selectedControlId);
+        const preparedCategories = await prepareDefaultCategoriesForControl(selectedControlId, profileType);
 
         if (!isMounted) {
           return;
@@ -368,7 +375,7 @@ export function NewTransactionScreen({
 
         setCategories(preparedCategories);
 
-        if (!controlHasCategoriesForAllDefaultTypes(preparedCategories)) {
+        if (!controlHasCategoriesForAllDefaultTypes(preparedCategories, profileType)) {
           setCategoryError('Não encontramos categorias para este controle. Tente voltar e abrir novamente ou avise o responsável pelo piloto.');
         }
       } catch (error) {
@@ -544,6 +551,9 @@ export function NewTransactionScreen({
               ? 'Confira valor, tipo, data e categoria antes de confirmar. Nada é salvo automaticamente.'
               : 'Registre uma receita ou despesa manualmente nesta versão de validação.'}
         </Text>
+        <View style={styles.helpCard}>
+          <Text style={styles.helpText}>Revise tipo, valor, data e categoria antes de salvar. Nada é registrado sem sua confirmação.</Text>
+        </View>
       </View>
 
       {initialDraft && !isEditing ? (
@@ -817,6 +827,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: '#475569',
+  },
+  helpCard: {
+    marginTop: 12,
+    borderRadius: 12,
+    backgroundColor: '#e0f2fe',
+    padding: 12,
+  },
+  helpText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#334155',
   },
   noticeCard: {
     backgroundColor: '#eff6ff',
