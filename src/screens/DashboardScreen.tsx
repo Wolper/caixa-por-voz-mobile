@@ -278,8 +278,15 @@ export function DashboardScreen({
             <Pressable style={styles.textShortcutButton} onPress={onTextTransaction}>
               <Text style={styles.textShortcutButtonText}>Registrar por texto</Text>
             </Pressable>
-            <Pressable style={styles.voiceShortcutButton} onPress={onVoiceTransaction}>
-              <Text style={styles.voiceShortcutButtonText}>Registrar por voz (simulado)</Text>
+            <Pressable
+              accessibilityHint="Abre a tela para digitar ou colar uma transcrição simulada de voz."
+              accessibilityLabel="Registrar por voz simulado"
+              accessibilityRole="button"
+              style={styles.voiceShortcutButton}
+              onPress={onVoiceTransaction}
+            >
+              <Text style={styles.voiceShortcutButtonText}>Registrar por voz</Text>
+              <Text style={styles.voiceShortcutHint}>Simulado ativo no MVP</Text>
             </Pressable>
             <Pressable style={styles.shortcutButton} onPress={onOpenTransactions}>
               <Text style={styles.shortcutButtonText}>Ver movimentações</Text>
@@ -326,8 +333,9 @@ const styles = StyleSheet.create({
   shortcutButtonText: { color: '#1b64d9', fontWeight: '700' },
   textShortcutButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#f5fff7' },
   textShortcutButtonText: { color: '#116329', fontWeight: '700' },
-  voiceShortcutButton: { borderWidth: 1, borderColor: '#6d28d9', borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#f5f3ff' },
-  voiceShortcutButtonText: { color: '#6d28d9', fontWeight: '700' },
+  voiceShortcutButton: { borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#6d28d9', gap: 3 },
+  voiceShortcutButtonText: { color: '#ffffff', fontWeight: '800' },
+  voiceShortcutHint: { color: '#ede9fe', fontSize: 12, fontWeight: '700' },
   checklistShortcutButton: { borderWidth: 1, borderColor: '#b45309', borderRadius: 10, paddingVertical: 14, alignItems: 'center', backgroundColor: '#fffbeb' },
   checklistShortcutButtonText: { color: '#92400e', fontWeight: '700' },
   secondaryButton: { borderRadius: 10, borderWidth: 1, borderColor: '#333', paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center' },

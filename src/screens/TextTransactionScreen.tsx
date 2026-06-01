@@ -46,10 +46,10 @@ const screenCopyByMode: Record<TextTransactionMode, {
   },
   voice: {
     title: 'Registrar por voz',
-    subtitle: 'Este é um fluxo visual do MVP para validar a jornada por voz. A gravação real será integrada depois.',
-    reviewHint: 'A voz real ainda será integrada depois. Por enquanto, digite a transcrição simulada e revise tudo antes de salvar.',
+    subtitle: 'Fluxo simulado ativo no MVP para validar a jornada por voz sem gravar áudio real.',
+    reviewHint: 'Digite a transcrição simulada, confira a prévia e revise tudo antes de salvar manualmente.',
     infoTitle: 'Voz real ainda não está ativa',
-    infoText: 'Neste MVP não gravamos áudio, não pedimos microfone e não enviamos áudio para transcrição. Use o campo abaixo para digitar ou colar a frase como se ela já tivesse sido transcrita.',
+    infoText: 'No MVP, a gravação real ainda não está ativa. Digite ou cole a frase como se fosse a transcrição da voz. Não pedimos microfone e não enviamos áudio para transcrição.',
     inputLabel: 'Texto transcrito da fala',
     ctaLabel: 'Revisar texto transcrito',
     emptyMessage: 'Digite ou cole a transcrição simulada para eu interpretar o lançamento.',
@@ -105,8 +105,8 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview, m
         <View style={[styles.card, styles.voiceInfoCard]}>
           <Text style={styles.sectionTitle}>{copy.infoTitle}</Text>
           <Text style={styles.helperText}>{copy.infoText}</Text>
-          <View style={styles.simulatedVoiceButton}>
-            <Text style={styles.simulatedVoiceButtonText}>Simular fala</Text>
+          <View style={styles.simulatedVoicePill}>
+            <Text style={styles.simulatedVoicePillText}>Fluxo simulado ativo</Text>
           </View>
         </View>
       ) : null}
@@ -203,8 +203,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   voiceInfoCard: { borderColor: '#c4b5fd', backgroundColor: '#f5f3ff' },
-  simulatedVoiceButton: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#6d28d9' },
-  simulatedVoiceButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
+  simulatedVoicePill: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#6d28d9' },
+  simulatedVoicePillText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
   label: { fontSize: 14, fontWeight: '700', color: '#334155' },
   input: {
     borderWidth: 1,
