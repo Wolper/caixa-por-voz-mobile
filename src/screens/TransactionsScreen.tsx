@@ -463,8 +463,15 @@ export function TransactionsScreen({
         <Pressable style={styles.textTransactionButton} onPress={onTextTransaction}>
           <Text style={styles.textTransactionButtonText}>Registrar por texto</Text>
         </Pressable>
-        <Pressable style={styles.voiceTransactionButton} onPress={onVoiceTransaction}>
-          <Text style={styles.voiceTransactionButtonText}>Registrar por voz (simulado)</Text>
+        <Pressable
+          accessibilityHint="Abre a tela para digitar ou colar uma transcrição simulada de voz."
+          accessibilityLabel="Registrar por voz simulado"
+          accessibilityRole="button"
+          style={styles.voiceTransactionButton}
+          onPress={onVoiceTransaction}
+        >
+          <Text style={styles.voiceTransactionButtonText}>Registrar por voz</Text>
+          <Text style={styles.voiceTransactionHint}>Simulado ativo no MVP</Text>
         </Pressable>
         <Pressable style={styles.accountsButton} onPress={onOpenAccounts}>
           <Text style={styles.accountsButtonText}>Ver contas</Text>
@@ -650,8 +657,9 @@ const styles = StyleSheet.create({
   accountsButtonText: { color: '#1b64d9', fontWeight: '700' },
   textTransactionButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 12, alignItems: 'center', backgroundColor: '#f5fff7' },
   textTransactionButtonText: { color: '#116329', fontWeight: '700' },
-  voiceTransactionButton: { borderWidth: 1, borderColor: '#6d28d9', borderRadius: 10, paddingVertical: 12, alignItems: 'center', backgroundColor: '#f5f3ff' },
-  voiceTransactionButtonText: { color: '#6d28d9', fontWeight: '700' },
+  voiceTransactionButton: { borderRadius: 10, paddingVertical: 12, alignItems: 'center', backgroundColor: '#6d28d9', gap: 3 },
+  voiceTransactionButtonText: { color: '#ffffff', fontWeight: '800' },
+  voiceTransactionHint: { color: '#ede9fe', fontSize: 12, fontWeight: '700' },
   exportButton: { borderWidth: 1, borderColor: '#116329', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   exportButtonText: { color: '#116329', fontWeight: '700' },
   summaryBox: { borderWidth: 1, borderColor: '#d9d9d9', borderRadius: 12, padding: 12, gap: 4, marginBottom: 12 },
