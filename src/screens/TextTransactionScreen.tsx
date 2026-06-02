@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { PilotBadge } from '../components/PilotBadge';
@@ -59,6 +59,7 @@ const screenCopyByMode: Record<TextTransactionMode, {
 export function TextTransactionScreen({ selectedControlName, onBack, onReview, mode = 'text', backLabel = 'Voltar' }: Props) {
   const [phrase, setPhrase] = useState('');
   const [interpreting, setInterpreting] = useState(false);
+  const transcriptInputRef = useRef<TextInput>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const parsed = useMemo(() => {
@@ -68,6 +69,11 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview, m
 
     return parseTextTransaction(phrase);
   }, [phrase]);
+
+  function handleUseTranscribedText() {
+    setMessage(null);
+    transcriptInputRef.current?.focus();
+  }
 
   function handleReview() {
     const trimmedPhrase = phrase.trim();
@@ -105,15 +111,22 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview, m
         <View style={[styles.card, styles.voiceInfoCard]}>
           <Text style={styles.sectionTitle}>{copy.infoTitle}</Text>
           <Text style={styles.helperText}>{copy.infoText}</Text>
-          <View style={styles.simulatedVoicePill}>
-            <Text style={styles.simulatedVoicePillText}>Fluxo simulado ativo</Text>
-          </View>
+          <Pressable
+            accessibilityHint="Foca o campo para digitar ou colar a transcrição simulada da fala."
+            accessibilityRole="button"
+            accessibilityLabel="Usar texto transcrito"
+            style={styles.transcribedTextButton}
+            onPress={handleUseTranscribedText}
+          >
+            <Text style={styles.transcribedTextButtonText}>Usar texto transcrito</Text>
+          </Pressable>
         </View>
       ) : null}
 
       <View style={styles.card}>
         <Text style={styles.label}>{copy.inputLabel}</Text>
         <TextInput
+          ref={transcriptInputRef}
           style={[styles.input, styles.multilineInput]}
           placeholder="Ex.: Comprei frango por 380 reais no Pix hoje"
           value={phrase}
@@ -127,7 +140,10 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview, m
 
         <Text style={styles.examplesTitle}>Exemplos rápidos</Text>
         {examplePhrases.map((example) => (
-          <Pressable key={example} style={styles.exampleButton} onPress={() => setPhrase(example)}>
+          <Pressable key={example} style={styles.exampleButton} onPress={() => {
+            setPhrase(example);
+            setMessage(null);
+          }}>
             <Text style={styles.exampleButtonText}>{example}</Text>
           </Pressable>
         ))}
@@ -203,8 +219,8 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   voiceInfoCard: { borderColor: '#c4b5fd', backgroundColor: '#f5f3ff' },
-  simulatedVoicePill: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#6d28d9' },
-  simulatedVoicePillText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
+  transcribedTextButton: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: '#2563eb' },
+  transcribedTextButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
   label: { fontSize: 14, fontWeight: '700', color: '#334155' },
   input: {
     borderWidth: 1,
