@@ -103,7 +103,7 @@ export function TextTransactionScreen({ selectedControlName, onBack, onReview, m
         <Text style={styles.subtitle}>{copy.subtitle}</Text>
         <Text style={styles.reviewHint}>{copy.reviewHint}</Text>
         <View style={styles.helpCard}>
-          <Text style={styles.helpText}>{isVoiceMode ? 'A voz real ainda é simulada: digite a transcrição, confira a prévia e revise antes de salvar.' : 'Digite exemplos como “Recebi 150 do João” ou “Conta de energia 220 vencendo dia 10” e revise a prévia antes de salvar.'}</Text>
+          <Text style={styles.helperText}>{isVoiceMode ? 'A voz real ainda é simulada: digite a transcrição, confira a prévia e revise antes de salvar.' : 'Digite exemplos como “Recebi 150 do João” ou “Conta de energia 220 vencendo dia 10” e revise a prévia antes de salvar.'}</Text>
         </View>
       </View>
 
