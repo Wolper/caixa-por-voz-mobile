@@ -43,6 +43,13 @@ type SelectedControl = {
   selectedControlName: string;
 };
 
+type PrimaryRoute =
+  | ({ name: 'dashboard' } & SelectedControl)
+  | ({ name: 'transactions' } & SelectedControl);
+
+type TransactionEntryRoute =
+  | ({ name: 'text-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
+  | ({ name: 'voice-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl);
 
 function routeNeedsSelectedControl(route: AppRoute): route is Exclude<AppRoute, { name: 'controls' }> {
   return route.name !== 'controls';
@@ -50,15 +57,29 @@ function routeNeedsSelectedControl(route: AppRoute): route is Exclude<AppRoute, 
 
 type AppRoute =
   | { name: 'controls' }
-  | ({ name: 'dashboard' } & SelectedControl)
-  | ({ name: 'transactions' } & SelectedControl)
+  | PrimaryRoute
   | ({ name: 'mvp-checklist' } & SelectedControl)
   | ({ name: 'accounts'; from: 'controls' | 'dashboard' | 'transactions' } & SelectedControl)
-  | ({ name: 'text-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
-  | ({ name: 'voice-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
+  | TransactionEntryRoute
   | ({ name: 'new-transaction'; from: 'dashboard' | 'transactions' } & SelectedControl)
   | ({ name: 'review-text-transaction'; from: 'text-transaction' | 'voice-transaction'; returnTo: 'dashboard' | 'transactions'; draft: TextTransactionDraft } & SelectedControl)
   | ({ name: 'edit-transaction'; transaction: Transaction } & SelectedControl);
+
+function createPrimaryRoute(name: 'dashboard' | 'transactions', selectedControl: SelectedControl): PrimaryRoute {
+  return name === 'dashboard'
+    ? { name: 'dashboard', ...selectedControl }
+    : { name: 'transactions', ...selectedControl };
+}
+
+function createTransactionEntryRoute(
+  name: 'text-transaction' | 'voice-transaction',
+  from: 'dashboard' | 'transactions',
+  selectedControl: SelectedControl,
+): TransactionEntryRoute {
+  return name === 'text-transaction'
+    ? { name: 'text-transaction', from, ...selectedControl }
+    : { name: 'voice-transaction', from, ...selectedControl };
+}
 
 function AuthScreen() {
   const { signIn, signUp } = useAuth();
@@ -169,12 +190,13 @@ function Root() {
     }
 
     let isMounted = true;
+    const selectedRoute = route;
 
     async function validateSelectedControl() {
       const { data, error } = await supabase
         .from('companies')
         .select('id, name')
-        .eq('id', route.selectedControlId)
+        .eq('id', selectedRoute.selectedControlId)
         .maybeSingle();
 
       if (!isMounted) {
@@ -189,8 +211,8 @@ function Root() {
         return;
       }
 
-      if (data.name !== route.selectedControlName) {
-        setRoute({ ...route, selectedControlName: data.name });
+      if (data.name !== selectedRoute.selectedControlName) {
+        setRoute({ ...selectedRoute, selectedControlName: data.name });
       }
     }
 
@@ -284,27 +306,23 @@ function Root() {
         onBack={() =>
           setRoute(
             route.name === 'review-text-transaction'
-              ? {
-                  name: route.from,
-                  from: route.returnTo,
+              ? createTransactionEntryRoute(route.from, route.returnTo, {
                   selectedControlId: route.selectedControlId,
                   selectedControlName: route.selectedControlName,
-                }
-              : {
-                  name: returnRouteName,
+                })
+              : createPrimaryRoute(returnRouteName, {
                   selectedControlId: route.selectedControlId,
                   selectedControlName: route.selectedControlName,
-                },
+                }),
           )
         }
         onSaved={() => {
           setTransactionsRefreshSignal((value) => value + 1);
           setDashboardRefreshSignal((value) => value + 1);
-          setRoute({
-            name: returnRouteName,
+          setRoute(createPrimaryRoute(returnRouteName, {
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
-          });
+          }));
         }}
       />
     );
@@ -316,11 +334,10 @@ function Root() {
         selectedControlName={route.selectedControlName}
         backLabel={route.from === 'dashboard' ? 'Voltar para Início' : 'Voltar para Movimentações'}
         onBack={() =>
-          setRoute({
-            name: route.from,
+          setRoute(createPrimaryRoute(route.from, {
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
-          })
+          }))
         }
         onReview={(draft) =>
           setRoute({
@@ -342,11 +359,10 @@ function Root() {
         selectedControlName={route.selectedControlName}
         backLabel={route.from === 'dashboard' ? 'Voltar para Início' : 'Voltar para Movimentações'}
         onBack={() =>
-          setRoute({
-            name: route.from,
+          setRoute(createPrimaryRoute(route.from, {
             selectedControlId: route.selectedControlId,
             selectedControlName: route.selectedControlName,
-          })
+          }))
         }
         onReview={(draft) =>
           setRoute({
